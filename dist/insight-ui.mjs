@@ -1,3 +1,4 @@
+import {itemMeta} from './workshop.mjs';
 import {passiveDefinitions,passiveValues,bonusText} from './passives.mjs';
 import {combatStats,abilityCatalog,abilities} from './combat.mjs';
 import {attackPower,attackHits,isAttack,shieldPower,recoveryPower} from './scaling.mjs';
@@ -59,7 +60,7 @@ export function growthPanel(s,data){
  const card=(c,index)=>{
   let body='';
   if(c.rewardType==='stat')body=`<p class="growth-preview">${esc(growthPreview(s,c.stat))}</p>`;
-  else if(c.rewardType==='item')body=`<p class="reward-item-description">${esc(c.item.description)}</p><p class="muted">${c.item.type==='equipment'?'장비 탭에서 착용':'장비 탭에서 사용'}</p>`;
+  else if(c.rewardType==='item')body=`<p class="item-meta grade-${c.item.grade}">${esc(itemMeta(c.item))}</p><p class="reward-item-description">${esc(c.item.description)}</p><p class="muted">${c.item.type==='equipment'?'장비 탭에서 착용':'장비 탭에서 사용'}</p>`;
   else if(c.ability){body=`<p class="reward-value">${esc(skillInsight(s,c.ability).value)}</p><details class="skill-math reward-math"><summary>수치 상세</summary>${skillInfo(s,c.ability)}</details>`;if(c.rewardType==='upgrade'||c.rewardType==='passive-upgrade')body+=`<p class="rank-preview">강화 후 · ${esc(skillInsight(s,{...c.ability,rank:(c.ability.rank||0)+1}).value)}</p>`;}
   return `<article class="growth-card reward-${c.rewardType}"><p class="reward-tag"><span>0${index+1}</span> ${labels[c.rewardType]}</p><h3>${esc(c.title)}</h3>${c.rewardType==='item'?'':`<p class="muted">${esc(c.hint||'')}</p>`}${body}<button class="primary" data-choice="${c.id}" aria-label="${esc(c.title)} 선택 · 성장점 1 사용">이 보상 선택</button></article>`;
  };

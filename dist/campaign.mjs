@@ -1,13 +1,6 @@
+import {routeTemplate} from './routes.mjs';
 // Game-only side story. The player remains an outside messenger, not a Cheongunmun initiate.
-const place=(id,kind,name,extra={})=>({id,kind,name,image:'cheongun',...extra});
-export const secondStops=[
- {name:'도시와 산의 경계',options:[place('fight-alley','fight','골목의 독침꾼',{zone:'alley'}),place('shop','shop','산문 아래 약재상'),place('story-ledger','story','분실된 운송 장부',{event:'city-ledger'})]},
- {name:'물소리 나는 돌계단',options:[place('fight-sentry','fight','푸른 부적의 추적자',{zone:'canal-sentry'}),place('mentor','mentor','산문 밖의 수련자'),place('rest','rest','돌계단 옆 찻집')]},
- {name:'낡은 수로의 갈림길',options:[place('fight-alley','fight','뒷길을 막은 독침꾼',{zone:'alley'}),place('forge','forge','수문 곁의 대장간'),place('story-watermarks','story','훼손된 수문의 인장',{event:'watermarks'})]},
- {name:'산으로 이어지는 장터',options:[place('fight-sentry','fight','인장을 쫓는 술사',{zone:'canal-sentry'}),place('shop','shop','청운문 앞 마지막 장터'),place('rest','rest','수로를 내려다보는 정자')]},
- {name:'봉쇄된 뒷문',options:[place('elite-alley','fight','독침꾼의 우회 매복',{zone:'alley',elite:true}),place('story-watch','story','이솔과 나누는 밤 경계',{event:'isol-watch'}),place('mentor','mentor','문밖에서 만난 교관')]},
- {name:'잠긴 수문 앞',options:[place('rest','rest','마지막으로 숨을 돌린다'),place('forge','forge','불이 남은 화덕'),place('mentor','mentor','새벽의 마지막 가르침')]}
-];
+export const secondStops=routeTemplate(2);
 export const secondZones=[
  {id:'alley',name:'산문 아래 뒷골목',subtitle:'사라지는 독침',image:'cheongun',art:'bandit',danger:'독침',description:'사람들이 떠난 골목에서 가느다란 침이 돌바닥에 박혔다. 추적자는 정면으로 오래 싸우지 않고 독이 퍼질 틈을 노린다.',enemy:{name:'골목의 독침꾼',element:'나무',hp:35,attack:3,defense:1,speed:6,evasion:.1,weapon:'독침',heavyEvery:3,heavyBonus:2},reward:{xp:6,gold:8,ore:1},clue:'독침 통에서 잘린 푸른 끈이 나왔다. 수로 쪽에서도 같은 끈을 보았다는 사람이 있었다.'},
  {id:'canal-sentry',name:'청운문 바깥 수로',subtitle:'기다리는 술식',image:'cheongun',art:'seal-mage',danger:'시전',description:'푸른 부적이 수면 위에 떠 있다. 추적자는 물의 숨을 모아 주문을 준비한다. 연결이 완성되기 전에 끊거나, 방어를 마련해야 한다.',enemy:{name:'푸른 부적의 추적자',element:'물',hp:46,attack:3,defense:1,speed:3,weapon:'수인',heavyEvery:99,castEvery:3,castPower:3,castName:'수로의 결박'},reward:{xp:8,gold:10,ore:2},clue:'추적자의 부적은 청운문의 인장이 아니었다. 누군가 수문 밖에서 문파의 표식을 흉내 내고 있었다.'},

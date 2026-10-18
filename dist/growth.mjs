@@ -13,7 +13,7 @@ export function growthPool(s){
   return {id:(learned?'hone-':'study-')+a.id,title:ability.name+(learned?' 강화':' 배우기'),hint:learned?'강화 '+rank+' → '+(rank+1)+' / '+MAX_SKILL_RANK+' · 성장점 1':a.description+' · 성장점 1',rewardType:a.passive?(learned?'passive-upgrade':'passive'):(learned?'upgrade':'skill'),ability};
  });
  const stats=Object.keys(statNames).map(stat=>({id:'grow-'+stat,title:statNames[stat]+' +1',hint:statNames[stat]+' '+s[stat]+' → '+(s[stat]+1)+' · 성장점 1',rewardType:'stat',stat}));
- const rewards=items.filter(i=>i.type!=='equipment'||!itemCount(j,i.id)).map(item=>({id:'claim-item-'+item.id,title:item.name,hint:item.description+' · 1개 획득 · 성장점 1',rewardType:'item',item}));
+ const rewards=items.filter(i=>i.minLevel<=(j.level||1)&&(i.type!=='equipment'||!itemCount(j,i.id))).map(item=>({id:'claim-item-'+item.id,title:item.name,hint:item.description+' · 1개 획득 · 성장점 1',rewardType:'item',item}));
  return {skills:skillOffers,stats,items:rewards};
 }
 function hash(text){let value=2166136261;for(const c of text)value=Math.imul(value^c.charCodeAt(0),16777619);return value>>>0||1;}

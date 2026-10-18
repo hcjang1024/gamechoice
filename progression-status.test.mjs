@@ -27,8 +27,8 @@ test('이벤트 성장과 기존 저장도 미사용 성장점 배분을 강제�
  s.scene='shop';s.journey.points=1;s=migrate(s);assert.equal(s.scene,'growth');s=choose(s,'grow-control');assert.equal(s.scene,'shop');
 });
 test('갈림길 카드는 종류만 표시하고 보상·상대·이벤트 결과를 노출하지 않는다',()=>{
- let s=choose(startJourney(hero()),'grow-control');let html=routeCards(s);assert.match(html,/전투/);assert.match(html,/상점/);assert.match(html,/이벤트/);for(const phrase of ['매복꾼','경험 4','엽전 5','보급','강화석','멈춰 선 행상'])assert.ok(!html.includes(phrase));
- assert.deepEqual(scene(s).choices.filter(c=>c.id.startsWith('node-')).map(c=>c.hint),['','','']);
+ let s=choose(startJourney(hero()),'grow-control');let html=routeCards(s);assert.equal((html.match(/data-choice=/g)||[]).length,2);for(const phrase of ['매복꾼','경험 4','엽전 5','보급','강화석','멈춰 선 행상'])assert.ok(!html.includes(phrase));
+ assert.deepEqual(scene(s).choices.filter(c=>c.id.startsWith('node-')).map(c=>c.hint),['','']);
 });
 test('일곱 속성의 적중 기술은 각각 다른 상태를 부여한다',()=>{
  for(const [element,id] of Object.entries(elementStatus)){let s=duel(element);s=tickBattle(s);assert.ok(statusFor(s,'enemy',id),element);assert.ok(s.battle.effects.some(e=>e.kind==='status'&&e.status===id));}

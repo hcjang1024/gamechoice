@@ -21,11 +21,11 @@ test('성장점으로 선택한 기술 하나만 배우며 비용과 중복 제�
  assert.equal(s.journey.points,0);assert.deepEqual(abilities(s).map(a=>a.id),['weapon','counter']);assert.deepEqual(s.loadout,['weapon','counter']);assert.throws(()=>choose(s,'study-counter'));assert.throws(()=>choose(s,'study-element'));
 });
 test('교관에게 배운 기본 기술도 재화를 지불하고 하나씩 익힌다',()=>{
- let s=startJourney(choose(lesson(),'pick-weapon'));s=act(s,'grow-insight','node-story-caravan','event-lift','node-mentor');const before=s.journey.gold;s=choose(s,'learn-element');
+ let s=startJourney(choose(lesson(),'pick-weapon'));s=act(s,'grow-insight','node-story-caravan','event-lift','node-forge','open-school');const before=s.journey.gold;s=choose(s,'learn-element');
  assert.equal(s.journey.gold,before-6);assert.deepEqual(abilities(s).map(a=>a.id),['weapon','element']);assert.throws(()=>choose(s,'learn-element'));assert.deepEqual(s.loadout,['weapon','element']);
 });
 test('액티브 세 칸이 차면 네 번째 기술은 기존 구성을 바꾸지 않는다',()=>{
- let s=startJourney(choose(lesson(),'pick-weapon'));s=act(s,'study-counter','node-story-caravan','event-lift','node-mentor','learn-element');
+ let s=startJourney(choose(lesson(),'pick-weapon'));s=act(s,'study-counter','node-story-caravan','event-lift','node-forge','open-school','learn-element');
  assert.deepEqual(s.loadout,['weapon','counter','element']);s=choose(s,'learn-guard');assert.deepEqual(s.loadout,['weapon','counter','element']);assert.equal(abilities(s).length,4);
 });
 test('새 학습 기록은 저장과 재도전 시점에 보존된다',()=>{

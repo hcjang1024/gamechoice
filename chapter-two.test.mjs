@@ -10,7 +10,7 @@ import {beginBattle,tickBattle,fastForward,maxHp} from './dist/combat.mjs';
 import {opponentArt} from './dist/battle-stage.mjs';
 const act=(s,...ids)=>ids.reduce((s,id)=>choose(s,id),s);
 function hero(path='inner'){const h=Object.assign(initial('새 길'),{path,element:'물',weapon:'검',control:4,skill:3,insight:2,learnedSkills:['weapon','element','counter'],loadout:['signature','flow-counter'],flags:['art-control']});let s=choose(startJourney(h),'hone-signature');Object.assign(s.journey,{level:3,gold:25,ore:8,gear:1,learned:['flow-counter']});return s;}
-function completed(){const s=hero();s.journey.complete=true;s.journey.route.used=6;s.journey.route.ended='victory';return s;}
+function completed(){const s=hero();s.journey.complete=true;s.journey.route.used=8;s.journey.route.ended='victory';return s;}
 function next(){return act(completed(),'read-letter','next-journey');}
 test('첫 챕터의 승리 결말에서만 두 번째 챕터로 이동할 수 있다',()=>{
  assert.throws(()=>advanceChapter(hero()));assert.throws(()=>choose(hero(),'next-journey'));const s=completed();assert.throws(()=>choose(s,'next-journey'));const end=choose(s,'read-letter');assert.ok(scene(end).choices.some(c=>c.id==='next-journey'));assert.equal(choose(end,'next-journey').journey.chapter,2);
@@ -22,8 +22,8 @@ test('새 챕터는 성장·이름·길·장비·기술을 유지하고 여정�
 test('챕터 전환과 여비 지급을 반복 호출해 재화를 쌓을 수 없다',()=>{
  let s=next();assert.throws(()=>choose(s,'next-journey'));assert.throws(()=>advanceChapter(s));const gold=s.journey.gold;s.journey.route.ended='defeat';s=choose(s,'retry-chapter');assert.equal(s.journey.gold,gold);assert.equal(s.journey.completedChapters.length,1);assert.equal(s.journey.chapter,2);
 });
-test('두 번째 챕터도 여섯 갈림길이며 첫 챕터 전투로 돌아갈 수 없다',()=>{
- const s=next();assert.equal(s.journey.route.total,6);assert.equal(optionsFor(s).length,3);assert.throws(()=>choose(s,'node-fight-trail'));assert.throws(()=>choose(s,'challenge-boss'));assert.match(chapterProgress(s),/CHAPTER 02/);assert.match(routeCards(s),/전투/);assert.ok(!routeCards(s).includes('독침꾼'));
+test('두 번째 챕터도 여덟 준비 단계이며 첫 챕터 전투로 돌아갈 수 없다',()=>{
+ const s=next();assert.equal(s.journey.route.total,8);assert.equal(optionsFor(s).length,2);assert.throws(()=>choose(s,'node-fight-trail'));assert.throws(()=>choose(s,'challenge-boss'));assert.match(chapterProgress(s),/CHAPTER 02/);assert.match(routeCards(s),/전투/);assert.ok(!routeCards(s).includes('독침꾼'));
 });
 test('새 사건은 선택 뒤 한 번만 보상하고 기존 결과 예고를 숨긴다',()=>{
  let s=act(next(),'node-story-ledger');assert.ok(scene(s).choices.every(c=>c.hint===''));const hp=s.hp,gold=s.journey.gold;s=choose(s,'event-carry');assert.equal(s.hp,hp-2);assert.equal(s.journey.gold,gold+10);assert.equal(s.journey.route.used,1);assert.throws(()=>choose(s,'event-carry'));
@@ -32,10 +32,10 @@ test('새 사건의 경험 보상도 성장점을 얻으면 다음 선택 전에
  let s=next();s.journey.xp=11;s=act(s,'node-story-ledger','event-copy');assert.equal(s.scene,'growth');assert.throws(()=>choose(s,'node-mentor'));s=choose(s,'grow-control');assert.equal(s.scene,'hub');assert.equal(s.journey.route.used,1);
 });
 test('이솔과 밤 경계를 나눈 기록은 능력치와 별개로 보스 주문을 약화한다',()=>{
- let s=next();s.journey.route.used=4;s=act(s,'node-story-watch','event-together');assert.ok(s.relations.includes('shared-watch'));assert.ok(relationshipEvents(s).some(x=>x.includes('밤 경계')));s=act(s,'node-forge','to-hub','challenge-boss','start-battle');assert.equal(s.battle.enemy.castPower,3);
+ let s=next();s.journey.route.used=4;s=act(s,'node-story-watch','event-together');assert.ok(s.relations.includes('shared-watch'));assert.ok(relationshipEvents(s).some(x=>x.includes('밤 경계')));s=act(s,'node-forge','to-hub');s.journey.route.used=8;s=act(s,'challenge-boss','start-battle');assert.equal(s.battle.enemy.castPower,3);
 });
 test('인장 단서는 보스 보호막의 시작량과 보충량을 줄인다',()=>{
- let s=next();s.journey.route.used=2;s=act(s,'node-story-watermarks','event-trace');s.journey.route.used=6;s=act(s,'challenge-boss','start-battle');assert.equal(s.battle.enemy.shield,1);assert.equal(s.battle.enemy.wardAmount,3);assert.equal(opponentArt(s),'seal-mage');
+ let s=next();s.journey.route.used=2;s=act(s,'node-story-watermarks','event-trace');s.journey.route.used=8;s=act(s,'challenge-boss','start-battle');assert.equal(s.battle.enemy.shield,1);assert.equal(s.battle.enemy.wardAmount,3);assert.equal(opponentArt(s),'seal-mage');
 });
 test('두 번째 챕터 재도전은 그 챕터 시작점으로 돌아가며 첫 챕터 기록은 유지한다',()=>{
  let s=next();const gold=s.journey.gold,skill=s.skill;s=act(s,'node-story-ledger','event-carry');s.skill+=5;s.journey.route.ended='defeat';s=choose(s,'retry-chapter');assert.equal(s.journey.chapter,2);assert.equal(s.journey.route.used,0);assert.equal(s.journey.gold,gold);assert.equal(s.skill,skill);assert.equal(s.journey.completedChapters.length,1);assert.ok(!s.journey.route.checkpoint.journey.route);
@@ -57,5 +57,5 @@ test('새 적의 주문과 보호막도 저장 복원 및 빠른 진행 결과�
  let s=beginBattle(hero('outer'),{enemy:zoneFor('sealkeeper').enemy,zone:'sealkeeper'});s.journey.active='sealkeeper';s.battle.actor='enemy';s.battle.round=3;s=tickBattle(s);assert.ok(s.battle.enemy.casting);assert.deepEqual(fastForward(migrate(JSON.parse(JSON.stringify(s)))),fastForward(s));assert.equal(secondZones.length,3);
 });
 test('두 번째 보스 승리 뒤에는 결말을 보고 종료하며 미구현 챕터로 넘어갈 수 없다',()=>{
- let s=next();s.journey.route.used=6;s=act(s,'challenge-boss','start-battle');s.battle.enemy.hp=1;s.battle.seed=1;s.battle.actor='player';s=fastForward(s);assert.equal(s.battle.outcome,'victory');s=choose(s,'continue');while(s.scene==='growth')s=choose(s,'grow-control');s=choose(s,'read-letter');assert.match(scene(s).title,/산문/);assert.ok(!scene(s).choices.some(c=>c.id==='next-journey'));s=choose(s,'to-hub');assert.equal(optionsFor(s).length,0);assert.throws(()=>choose(s,'next-journey'));
+ let s=next();s.journey.route.used=8;s=act(s,'challenge-boss','start-battle');s.battle.enemy.hp=1;s.battle.seed=1;s.battle.actor='player';s=fastForward(s);assert.equal(s.battle.outcome,'victory');s=choose(s,'continue');while(s.scene==='growth')s=choose(s,'grow-control');s=choose(s,'read-letter');assert.match(scene(s).title,/산문/);assert.ok(!scene(s).choices.some(c=>c.id==='next-journey'));s=choose(s,'to-hub');assert.equal(optionsFor(s).length,0);assert.throws(()=>choose(s,'next-journey'));
 });

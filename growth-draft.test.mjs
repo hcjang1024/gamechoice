@@ -57,7 +57,7 @@ test('manual skills obey path requirements and can be learned and strengthened w
 });
 test('all item reward types go to inventory, cost one point and no gold, and equipment is not duplicated',()=>{
  for(const item of items){
-  let s=hero();const before=itemCount(s.journey,item.id),gold=s.journey.gold,hp=s.hp,energy=s.energy,equipped=structuredClone(s.journey.equipped);
+  let s=hero();s.journey.level=item.minLevel;const before=itemCount(s.journey,item.id),gold=s.journey.gold,hp=s.hp,energy=s.energy,equipped=structuredClone(s.journey.equipped);
   s=chooseOffer(s,'claim-item-'+item.id);assert.equal(itemCount(s.journey,item.id),before+1);assert.equal(s.journey.gold,gold);assert.equal(s.journey.points,0);assert.equal(s.hp,hp);assert.equal(s.energy,energy);assert.deepEqual(s.journey.equipped,equipped);
   if(item.type==='equipment')assert.ok(!growthPool(s).items.some(c=>c.item.id===item.id));
   assert.deepEqual(migrate(JSON.parse(JSON.stringify(s))),s);
