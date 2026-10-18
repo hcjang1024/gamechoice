@@ -151,3 +151,14 @@ details>summary:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
 @media(max-width:1000px){.growth-columns{grid-template-columns:1fr}.growth-group{display:grid;grid-template-columns:1fr 1fr;gap:10px}.growth-group h2{grid-column:1/-1}.growth-card{margin:0}.stat-guide-grid{grid-template-columns:1fr}}
 @media(max-width:560px){.growth-group,.derived-guide,.basic-explanation{grid-template-columns:1fr}}
 
+
+.draft-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;align-items:stretch}
+.draft-grid .growth-card{display:flex;flex-direction:column;margin:0;padding:18px}
+.draft-grid .growth-card>.primary{margin-top:auto;padding-top:12px;padding-bottom:12px}
+.draft-grid .growth-card>.skill-scaling,.draft-grid .rank-preview,.draft-grid .growth-preview{margin-bottom:18px}
+.draft-grid .reward-tag{margin:0 0 12px;font-size:12px;color:#bdc9c3;letter-spacing:.02em}
+.reward-tag span{opacity:.55;margin-right:6px}
+.reward-upgrade .reward-tag{color:#e2c989}.reward-skill .reward-tag{color:#a9d5c3}.reward-item .reward-tag{color:#b8cbea}
+.draft-options .growth-instruction{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.draft-note{font-size:12px;line-height:1.7;color:#aab4b0;margin:14px 0 20px}
+@media(max-width:700px){.draft-grid{grid-template-columns:1fr}.draft-options .growth-instruction{align-items:flex-start;flex-direction:column;gap:4px}.draft-grid .growth-card{padding:18px}}

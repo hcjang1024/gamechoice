@@ -1,3 +1,4 @@
+export const fusionNames=s=>s.path==='outer'?{infused:'공명유성','flow-counter':'역류봉인',aegis:'잔향성역',tempest:'삼중회류진'}:{infused:({'맨손':'칠맥붕권','검':'유맥검','도':'열맥도','창':'관류창','활':'쇄류시','지팡이':'진맥봉'})[s.weapon]||'유맥격','flow-counter':'회류반격',aegis:'호신결벽',tempest:'만류연환'};
 export const pathInfo=s=>s.path==='outer'?{
  name:'끌어 쓰는 길',resource:'주변 숨',cycle:'인도 → 주문 준비 → 발동 · 유지',
  summary:'매 행동에 주변 숨이 1 유입됩니다. 공격 주문은 한 행동 동안 준비한 뒤 발동하며, 영역과 교란으로 싸웁니다. 피해 3 이상의 강타나 감전은 준비 중인 주문을 끊습니다.'
@@ -31,10 +32,11 @@ export function adaptArt(s,a){
  };
  const innerDescriptions={weapon:a.description,element:'즉시 발경 · 축기 1당 추가 위력 2 · 적중 시 속성 상태 부여',counter:'즉시 호신 · 보호막 2에 축기만큼 추가 · 맞받아치는 물리 반격',signature:'즉시 고유 무공 · 축기를 순간 방출해 강한 타격',guard:'즉시 보호막 3에 축기만큼 추가',focus:'내부 숨 3 회복 · 축기 2 축적',chain:'즉시 연속 타격 · 두 번째는 절반 위력 · 축기를 모두 방출',mend:'즉시 체력 4 회복 · 몸 안의 숨으로 상처 조율',infused:'즉시 무기와 결의 합격 · 축기를 모두 실어 강한 타격','flow-counter':'즉시 보호막 3에 축기만큼 추가 · 반격에 속성 상태를 실음',aegis:'즉시 보호막 5에 축기만큼 추가',tempest:'즉시 세 번 이어치는 무공 · 축기를 모두 방출'};
  const mode=outer?(['counter','flow-counter'].includes(a.id)?'disrupt':['guard','aegis'].includes(a.id)?'ward':a.id==='focus'?'focus':a.id==='mend'?'renew':'cast'):'instant';
- const name=outer?(outerNames[a.id]||a.name):a.ingredients&&!a.name.startsWith(s.element+'결 · ')?s.element+'결 · '+a.name:a.name;
+ const fusion=fusionNames(s);
+ const name=fusion[a.id]?fusion[a.id]:outer?(outerNames[a.id]||a.name):a.ingredients&&!a.name.startsWith(s.element+'결 · ')?s.element+'결 · '+a.name:a.name;
  const labels=outer?{weapon:'매개 투사술',element:'영역 전개',counter:'흐름 교란',guard:'흐름 장막',chain:'분기 투사',infused:'매개 공명'}:{weapon:'무기 기술',element:'결의 발경',counter:'간파 반격',guard:'기초 수비',chain:'연속격',infused:'결을 실은 일격'};
  return {...a,name:outer&&s.element?s.element+'결 · '+name:name,kind:outer?(mode==='cast'?'준비 주문':mode==='disrupt'?'교란술':mode==='ward'?'결계술':mode==='renew'?'유지 회복술':'인도술'):a.kind,
   description:(outer?outerDescriptions:innerDescriptions)[a.id]||a.description,mode,
-  ...(a.ingredients?{labels:a.ingredients.map(id=>labels[id]||id)}:{}),
+  ...(a.ingredients?{labels:a.ingredients.map(id=>fusion[id]||labels[id]||id)}:{}),
   ...(outer&&a.id==='chain'?{stat:'control',min:2,requirement:'제어 2'}:{})};
 }

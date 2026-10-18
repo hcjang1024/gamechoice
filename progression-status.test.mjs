@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {initial,choose,scene,migrate} from './dist/engine.mjs';
+import {initial,scene,migrate} from './dist/engine.mjs';
+import {chooseFixture as choose} from './test-fixtures.mjs';
 import {startJourney} from './dist/journey.mjs';
 import {beginBattle,tickBattle,fastForward,effectiveStats} from './dist/combat.mjs';
 import {applyStatus,statusFor,activeStatuses,elementStatus,statusModifiers} from './dist/statuses.mjs';

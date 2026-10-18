@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {initial,choose,scene,migrate,relationshipEvents} from './dist/engine.mjs';
+import {initial,scene,migrate,relationshipEvents} from './dist/engine.mjs';
+import {chooseFixture as choose} from './test-fixtures.mjs';
 import {startJourney,advanceChapter,zoneFor} from './dist/journey.mjs';
 import {secondZones,campaignFor} from './dist/campaign.mjs';
 import {optionsFor} from './dist/chapter.mjs';

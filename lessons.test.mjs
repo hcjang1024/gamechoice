@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {initial,choose,scene,migrate} from './dist/engine.mjs';
+import {initial,scene,migrate} from './dist/engine.mjs';
+import {chooseFixture as choose} from './test-fixtures.mjs';
 import {abilities,beginBattle,tickBattle} from './dist/combat.mjs';
 import {startJourney} from './dist/journey.mjs';
 const act=(s,...ids)=>ids.reduce((s,id)=>choose(s,id),s);

@@ -52,13 +52,14 @@ export function growthPreview(s,key){
  return parts.join(' · ')||'이번 1포인트는 다음 상승 구간을 위한 누적입니다.';
 }
 export function growthPanel(s,data){
- const catalog=abilityCatalog(s),groups=[['능력치 올리기','grow-'],['새 기술 익히기','study-'],['배운 기술 강화','hone-']];
- const card=c=>{
+ if(s.journey.points<1)return '<p class="muted">사용할 성장점이 없습니다.</p>'+data.choices.map(c=>`<button class="choice" data-choice="${c.id}">${esc(c.title)}</button>`).join('');
+ const labels={stat:'능력치 상승',skill:'새 기술',upgrade:'기술 강화',item:'아이템 획득'};
+ const card=(c,index)=>{
   let body='';
-  if(c.id.startsWith('grow-'))body=`<p class="growth-preview">${esc(growthPreview(s,c.id.slice(5)))}</p>`;
-  else {const a=catalog.find(a=>a.id===c.id.replace(/^(study-|hone-)/,''));if(a){body=skillInfo(s,a);if(c.id.startsWith('hone-')&&!c.disabled)body+=`<p class="rank-preview">강화 후 · ${esc(skillInsight(s,{...a,rank:(a.rank||0)+1}).value)}</p>`;}}
-  return `<article class="growth-card"><h3>${esc(c.title)}</h3><p class="muted">${esc(c.hint||'')}</p>${body}<button class="primary" data-choice="${c.id}" ${c.disabled?'disabled':''}>${c.disabled?'선택 불가':'성장점 1 사용'}</button></article>`;
+  if(c.rewardType==='stat')body=`<p class="growth-preview">${esc(growthPreview(s,c.stat))}</p>`;
+  else if(c.rewardType==='item')body=`<p class="reward-item-description">${esc(c.item.description)}</p><p class="muted">${c.item.type==='equipment'?'장비 · 소지품에서 장착':'소모품 · 소지품에서 사용'}</p>`;
+  else if(c.ability){body=skillInfo(s,c.ability);if(c.rewardType==='upgrade')body+=`<p class="rank-preview">강화 후 · ${esc(skillInsight(s,{...c.ability,rank:(c.ability.rank||0)+1}).value)}</p>`;}
+  return `<article class="growth-card reward-${c.rewardType}"><p class="reward-tag"><span>0${index+1}</span> ${labels[c.rewardType]}</p><h3>${esc(c.title)}</h3><p class="muted">${esc(c.hint||'')}</p>${body}<button class="primary" data-choice="${c.id}" aria-label="${esc(c.title)} 선택 · 성장점 1 사용">이 보상 선택</button></article>`;
  };
- return `<section class="growth-options" aria-label="모든 성장 선택지"><p class="growth-instruction">능력치·새 기술·기술 강화 중 골라 배분하세요. 남은 성장점 <strong>${s.journey.points}</strong></p><div class="growth-columns">${groups.map(([title,prefix])=>`<section class="growth-group"><h2>${title}</h2>${data.choices.filter(c=>c.id.startsWith(prefix)).map(card).join('')||'<p class="muted">지금 선택할 기술이 없습니다.</p>'}</section>`).join('')}</div>${data.choices.filter(c=>!groups.some(([,prefix])=>c.id.startsWith(prefix))).map(c=>`<button class="choice" data-choice="${c.id}" ${c.disabled?'disabled':''}>${esc(c.title)}</button>`).join('')}</section>`;
+ return `<section class="growth-options draft-options" aria-label="무작위 성장 보상 세 가지"><div class="growth-instruction"><span>세 보상 중 <b>하나</b>를 선택하세요</span><span>남은 성장점 <strong>${s.journey.points}</strong></span></div><div class="draft-grid">${data.choices.map(card).join('')}</div><p class="draft-note">선택한 보상만 얻습니다. 성장점이 남으면 새로운 세 보상이 제시됩니다.</p></section>`;
 }
-

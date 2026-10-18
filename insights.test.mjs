@@ -7,7 +7,7 @@ import {attackPower,attackHits} from './dist/scaling.mjs';
 import {growthPanel,growthPreview,skillInsight,statGuide} from './dist/insight-ui.mjs';
 function hero(path='inner',weapon='검'){return Object.assign(initial('수치 확인'),{path,weapon,element:'물',control:4,skill:3,insight:2,learnedSkills:['weapon'],loadout:['weapon'],flags:['art-control']});}
 test('every growth choice appears once outside collapsible sections',()=>{
- for(const path of ['inner','outer']){const s=startJourney(hero(path)),data=scene(s),html=growthPanel(s,data);assert.ok(!html.includes('<details'));for(const c of data.choices)assert.equal(html.split('data-choice="'+c.id+'"').length-1,1);for(const name of ['능력치 올리기','새 기술 익히기','배운 기술 강화'])assert.ok(html.includes(name));}
+ for(const path of ['inner','outer']){const s=startJourney(hero(path)),data=scene(s),html=growthPanel(s,data);assert.ok(!html.includes('<details'));for(const c of data.choices)assert.equal(html.split('data-choice="'+c.id+'"').length-1,1);assert.equal((html.match(/<article class="growth-card/g)||[]).length,3);assert.ok(html.includes('세 보상 중'));}
 });
 test('stat preview observes breakpoints, caps and path-specific power',()=>{
  const s=hero();assert.match(growthPreview(s,'skill'),/위력 5 → 6/);assert.ok(!growthPreview(s,'control').includes('방어'));s.control=5;assert.match(growthPreview(s,'control'),/방어 2 → 3/);s.skill=100;s.insight=100;assert.ok(!growthPreview(s,'skill').includes('명중'));assert.ok(!growthPreview(s,'insight').includes('회피'));assert.match(statGuide(s,true),/치명타 100%/);

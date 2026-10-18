@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {initial,choose,migrate} from './dist/engine.mjs';
+import {initial,migrate} from './dist/engine.mjs';
+import {chooseFixture as choose} from './test-fixtures.mjs';
 import {startJourney} from './dist/journey.mjs';
 import {abilities,combatStats,maxHp,maxEnergy,tickBattle,beginBattle,fastForward} from './dist/combat.mjs';
 import {items,itemCount} from './dist/workshop.mjs';
@@ -46,7 +47,7 @@ test('우두머리는 반격 태세를 잡고 플레이어의 공격에 역습�
  let s=beginBattle(hero(),{enemy:{hp:100,attack:4,counterEvery:3}});s.battle.actor='enemy';s.battle.round=3;s.battle.stats.range=0;s.battle.seed=1;s=tickBattle(s);assert.equal(s.battle.enemy.counterReady,true);s.battle.seed=1;s=tickBattle(s);assert.ok(s.battle.effects.some(e=>e.kind==='counter'&&e.actor==='enemy'));
 });
 test('조합 반격을 장착하면 기본 수비보다 우선해 반격 태세를 잡는다',()=>{
- let s=act(hero(1),'node-mentor','learn-guard','open-synthesis','combine-flow-counter','to-hub');s.loadout=['guard','flow-counter'];s=act(s,'node-fight-trail','start-battle');s.battle.actor='player';s.battle.round=3;s.battle.playerShield=0;s=tickBattle(s);assert.equal(s.battle.counter,true);assert.equal(s.battle.counterElement,true);assert.ok(s.battle.effects.some(e=>e.label.includes('흐름 되돌리기')));
+ let s=act(hero(1),'node-mentor','learn-guard','open-synthesis','combine-flow-counter','to-hub');s.loadout=['guard','flow-counter'];s=act(s,'node-fight-trail','start-battle');s.battle.actor='player';s.battle.round=3;s.battle.playerShield=0;s=tickBattle(s);assert.equal(s.battle.counter,true);assert.equal(s.battle.counterElement,true);assert.ok(s.battle.effects.some(e=>e.label.includes('회류반격')));
 });
 test('기존 저장에 빈 소지품과 학습 기록을 추가하며 진행과 재화를 보존한다',()=>{
  const old=hero();old.version=3;delete old.journey.inventory;delete old.journey.equipped;delete old.journey.learned;delete old.journey.prepBuffs;const s=migrate(old);assert.equal(s.version,6);assert.equal(s.journey.gold,200);assert.deepEqual(s.journey.equipped,{});assert.deepEqual(s.journey.learned,[]);

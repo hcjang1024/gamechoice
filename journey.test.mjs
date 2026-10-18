@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {initial,choose,scene,migrate} from './dist/engine.mjs';
+import {initial,scene,migrate} from './dist/engine.mjs';
+import {chooseFixture as choose} from './test-fixtures.mjs';
 import {startJourney} from './dist/journey.mjs';
 import {stops,optionsFor} from './dist/chapter.mjs';
 import {abilities,fastForward,tickBattle,maxHp,maxEnergy} from './dist/combat.mjs';
