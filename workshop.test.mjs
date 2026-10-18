@@ -4,7 +4,7 @@ import {initial,choose,migrate} from './dist/engine.mjs';
 import {startJourney} from './dist/journey.mjs';
 import {abilities,combatStats,maxHp,maxEnergy,tickBattle,beginBattle,fastForward} from './dist/combat.mjs';
 import {items,itemCount} from './dist/workshop.mjs';
-function hero(stop=0){const base=initial('가람');Object.assign(base,{path:'inner',weapon:'검',element:'물',control:2,skill:2,insight:2,flags:['art-control']});const s=startJourney(base);s.journey.gold=200;s.journey.ore=20;s.journey.route.used=stop;return s;}
+function hero(stop=0){const base=initial('가람');Object.assign(base,{path:'inner',weapon:'검',element:'물',control:2,skill:2,insight:2,flags:['art-control'],learnedSkills:['weapon','element','counter'],loadout:['weapon','element']});const s=startJourney(base);s.journey.gold=200;s.journey.ore=20;s.journey.route.used=stop;return s;}
 const act=(s,...ids)=>ids.reduce((x,id)=>choose(x,id),s);
 test('상점의 장비 7종과 소모품 6종은 실제 구입 가능하고 지출을 기록한다',()=>{
  let s=act(hero(),'node-shop');assert.equal(items.filter(i=>i.type==='equipment').length,7);assert.equal(items.filter(i=>i.type==='consumable').length,6);
@@ -49,7 +49,7 @@ test('조합 반격을 장착하면 기본 수비보다 우선해 반격 태세�
  let s=act(hero(1),'node-mentor','learn-guard','open-synthesis','combine-flow-counter','to-hub');s.loadout=['guard','flow-counter'];s=act(s,'node-fight-trail','start-battle');s.battle.actor='player';s.battle.round=3;s.battle.playerShield=0;s=tickBattle(s);assert.equal(s.battle.counter,true);assert.equal(s.battle.counterElement,true);assert.ok(s.battle.effects.some(e=>e.label.includes('흐름 되돌리기')));
 });
 test('기존 저장에 빈 소지품과 학습 기록을 추가하며 진행과 재화를 보존한다',()=>{
- const old=hero();old.version=3;delete old.journey.inventory;delete old.journey.equipped;delete old.journey.learned;delete old.journey.prepBuffs;const s=migrate(old);assert.equal(s.version,5);assert.equal(s.journey.gold,200);assert.deepEqual(s.journey.equipped,{});assert.deepEqual(s.journey.learned,[]);
+ const old=hero();old.version=3;delete old.journey.inventory;delete old.journey.equipped;delete old.journey.learned;delete old.journey.prepBuffs;const s=migrate(old);assert.equal(s.version,6);assert.equal(s.journey.gold,200);assert.deepEqual(s.journey.equipped,{});assert.deepEqual(s.journey.learned,[]);
 });
 test('연출 사건이 있는 전투도 저장 복원과 빠른 진행 결과가 같다',()=>{
  const s=act(hero(),'node-fight-trail','start-battle');const mid=tickBattle(s);assert.deepEqual(fastForward(mid),fastForward(migrate(JSON.parse(JSON.stringify(mid)))));

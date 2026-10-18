@@ -11,16 +11,18 @@ export const weaponProfiles={
 export const elementDescriptions={물:'유연한 흐름 · 기술 사용 시 보호막 1',불:'연소 · 다음 두 번의 적 행동마다 피해 1',흙:'단단한 결 · 기술 사용 시 보호막 2',바람:'흐름 가속 · 회피율 증가',나무:'회복하는 결 · 기술 사용 시 체력 1 회복',쇠:'벼린 결 · 기술이 적 방어를 관통',번개:'섬광 · 기술 추가 피해 1, 간헐적 경직'};
 export const maxHp=s=>10+Math.max(0,(s.journey?.level||1)-1)*2+equipmentBonus(s).hp;
 export const maxEnergy=s=>6+Math.floor(Math.max(0,(s.journey?.level||1)-1)/2)+equipmentBonus(s).energy;
-export function abilities(s){
+export function abilityCatalog(s){
  if(!s.path||!s.weapon)return [];
  const p=weaponProfiles[s.weapon],outer=s.path==='outer';
- const list=[{id:'weapon',name:outer?`${s.element}결 · ${p.art}`:p.art,cost:2,description:p.description,kind:'무기 기술'}];
- if(s.control>=2)list.push({id:'element',name:`${s.element}결 · ${outer?'숨의 파동':'결의 발경'}`,cost:2,description:elementDescriptions[s.element],kind:outer?'마법':'내공 기술'});
- if(s.insight>=2)list.push({id:'counter',name:'간파 반격',cost:1,description:'다음 공격 피해 감소 · 반격 태세',kind:'방어 기술'});
+ const list=[{id:'weapon',name:outer?`${s.element}결 · ${p.art}`:p.art,cost:2,description:'무기로 강하게 공격 · '+p.description,kind:'무기 기술'}];
+ list.push({id:'element',name:`${s.element}결 · ${outer?'숨의 파동':'결의 발경'}`,cost:2,description:'숨으로 공격 · '+elementDescriptions[s.element],kind:outer?'마법':'내공 기술'});
+ list.push({id:'counter',name:'간파 반격',cost:1,description:'다음 피해 2 감소 · 막아낸 뒤 반격',kind:'방어 기술'});
  const signature=s.flags.find(f=>/^art-(control|skill|insight)$/.test(f));
  if(signature)list.push({id:'signature',name:`${s.element}결 · ${{'art-control':'고른 숨','art-skill':'첫 궤적','art-insight':'읽는 흐름'}[signature]}`,cost:3,description:'서장에서 얻은 깨달음 · 강한 일격과 자신만의 운용',kind:'고유 기술'});
  return [...list,...extraArts(s)].map(a=>({...a,rank:s.journey?.skillRanks[a.id]||0,name:a.name+((s.journey?.skillRanks[a.id]||0)>0?' +'+s.journey.skillRanks[a.id]:'')}));
 }
+export function abilities(s){return abilityCatalog(s).filter(a=>a.id==='signature'||(s.learnedSkills||[]).includes(a.id)||s.journey?.learned?.includes(a.id));}
+export function grantAbility(s,id){s.learnedSkills??=[];if(['weapon','element','counter'].includes(id)&&!s.learnedSkills.includes(id))s.learnedSkills.push(id);const known=abilities(s).map(a=>a.id);s.loadout=(s.loadout??[]).filter(id=>known.includes(id));if(s.loadout.length<2&&!s.loadout.includes(id))s.loadout.push(id);}
 export function combatStats(s){const p=weaponProfiles[s.weapon],gear=equipmentBonus(s),buff=s.journey?.prepBuffs||{};return {attack:(s.path==='inner'?2+Math.floor(s.skill/2):1+Math.floor(s.control/2))+p.attack+(s.journey?.gear||0)+Math.floor((s.journey?.level||1)/2)+gear.attack+(buff.attack||0),defense:p.guard+Math.floor(s.control/3)+(s.journey?.armor||0)+gear.defense,speed:p.speed+Math.floor(s.insight/2)+(s.element==='바람'?2:0)+gear.speed+(buff.speed||0),accuracy:Math.min(.99,.83+s.skill*.025+s.insight*.02+gear.accuracy),evasion:Math.min(.5,s.insight*.025+(s.element==='바람'?.12:0)+gear.evasion),range:p.range};}
 function random(b){let x=b.seed;x^=x<<13;x^=x>>>17;x^=x<<5;b.seed=x>>>0;return b.seed/4294967296;}
 function seedFor(s){let n=2166136261;const encounter=s.journey?.route?.current?.step??s.journal.length;for(const c of `${s.name}|${s.path}|${s.element}|${s.weapon}|${encounter}`)n=Math.imul(n^c.charCodeAt(0),16777619);return n>>>0||1;}
@@ -51,6 +53,7 @@ function playerTurn(s){
  if(!chosen&&s.energy<2)chosen=known.find(a=>a.id==='focus'&&ready(a));
  if(!chosen&&(heavySoon||s.hp<=maxHp(s)*.4)&&!b.counter&&b.playerShield<2)chosen=['flow-counter','aegis','counter','guard'].map(id=>known.find(a=>a.id===id)).find(a=>a&&ready(a));
  chosen??=known.find(a=>ready(a)&&!support.has(a.id));
+ if(!chosen&&heavySoon&&b.playerShield<2){b.playerShield+=2;emit(s,'guard','player','player','기본 방어',2);log(s,'player','기본 방어 — 강한 공격에 대비해 피해를 2 막는다.',{skill:'기본 방어'});return;}
  if(!chosen&&s.energy<Math.max(2,...known.map(a=>a.cost))&&known.some(a=>!support.has(a.id))&&b.turn%3===0){const amount=Math.min(maxEnergy(s)-s.energy,s.path==='outer'?3:2);s.energy+=amount;b.playerShield++;emit(s,'recover','player','player','회복 호흡',amount);log(s,'player',`${s.path==='outer'?'외부의 숨을 다시 끌어온다':'호흡을 가다듬어 숨을 모은다'}. 숨 +${amount}, 보호막 +1.`,{skill:'회복 호흡'});return;}
  if(chosen){s.energy-=chosen.cost;b.cooldowns[chosen.id]=['counter','signature','flow-counter','focus','mend','tempest'].includes(chosen.id)?3:2;
   if(chosen.id==='mend'){const gain=Math.min(4+chosen.rank,maxHp(s)-s.hp);s.hp+=gain;emit(s,'heal','player','player',chosen.name,gain);log(s,'player',`${chosen.name}. 체력 ${gain} 회복.`,{skill:chosen.name});return;}

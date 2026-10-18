@@ -1,4 +1,4 @@
-import {beginBattle,abilities,maxHp,maxEnergy} from './combat.mjs';
+import {beginBattle,abilities,abilityCatalog,grantAbility,maxHp,maxEnergy} from './combat.mjs';
 import {ensureWorkshop} from './workshop.mjs';
 import {marketScene,marketChoose} from './market.mjs';
 import {ensureRoute,chapterScene,chapterChoose,finishVisit,awardExperience} from './chapter.mjs';
@@ -11,7 +11,7 @@ const opt=(id,title,hint='',disabled=false)=>({id,title,hint,disabled});
 export const xpNeeded=j=>6+(j.level-1)*3;
 export const zoneFor=id=>zones.find(z=>z.id===id);
 export function startJourney(state){
- const s=structuredClone(state);s.version=5;s.journey={level:1,xp:0,points:1,gold:8,ore:2,herbs:2,gear:0,armor:0,skillRanks:{},cleared:[],runs:0,active:null,reward:null,history:[],complete:false};
+ const s=structuredClone(state);s.version=6;s.journey={level:1,xp:0,points:1,gold:8,ore:2,herbs:2,gear:0,armor:0,skillRanks:{},cleared:[],runs:0,active:null,reward:null,history:[],complete:false};
  ensureWorkshop(s.journey);s.scene='hub';s.battle=null;s.flags=s.flags.filter(x=>!['advantage','guarded'].includes(x));s.hp=maxHp(s);s.energy=maxEnergy(s);ensureRoute(s);
  s.last='첫 챕터가 시작됐다. 중간 선택 6회 뒤 마지막 보스와 마주한다. · 성장점 1, 엽전 8, 강화석 2, 약초 2';return s;
 }
@@ -25,7 +25,7 @@ export function journeyScene(s){
  case 'battle':return {chapter:5,title:s.battle.outcome?`${z.name} · ${{victory:'승리',defeat:'전투 불능',retreat:'후퇴'}[s.battle.outcome]}`:z.name+'의 전투',text:[],choices:s.battle.outcome?[opt('continue','전투 결과와 보상을 확인한다',s.battle.outcome==='victory'?'승리 보상을 정산하고 여정을 이어간다':boss?'보스를 넘지 못했다. 이번 챕터 도전 종료':'이 전투의 보상 없이 남은 여정을 이어간다')]:[]};
  case 'reward':return {chapter:5,title:j.reward.outcome==='victory'?'싸움이 남긴 것':'잃은 기회와 남은 길',text:j.reward.outcome==='victory'?[j.reward.first?zoneFor(j.reward.zone).clue:'익숙한 적을 넘었지만, 여정의 한 칸은 돌아오지 않는다. 얻은 보상으로 다음 선택을 준비해야 한다.',j.reward.levels?`실전 등급이 ${j.level}이 되었다. 최대 체력이 늘었고 성장점을 얻었다.`:'체력과 숨은 싸움이 끝났을 때 그대로다. 쉬려면 다음 갈림길의 다른 기회를 포기해야 한다.']:['전투의 보상은 얻지 못했고, 한 번의 선택은 이미 지나갔다. 순찰대가 퇴로를 열어 주었지만 새 힘을 보태 주지는 못했다.','남은 소모품을 쓰거나, 뒤에 나타나는 휴식 기회를 골라 여정을 이어갈 수 있다.'],choices:[...(j.complete?[opt('read-letter','구해 낸 전령에게 밀서를 받는다','마지막 보스 격파 · 챕터 완료')]:[]),opt('to-hub',j.complete?'챕터 결과를 확인한다':'다음 갈림길로 나아간다',j.complete?'추가 전투·상점·휴식 없음':'남은 선택을 확인하고 한 곳을 고른다')]};
  case 'forge':return {chapter:5,title:'한 번뿐인 화덕 앞에서',text:['장인은 들고 온 도구와 방호구를 살폈다. 이곳에서 정비하는 동안 다른 길의 기회는 지나간다.','지금 가진 엽전과 강화석 안에서 보강하자. 떠난 뒤에는 이 화덕으로 돌아올 수 없다.'],choices:[opt('upgrade-gear',`${s.weapon==='맨손'?'권갑':s.weapon} 보강 +${j.gear} → +${j.gear+1}`,j.gear>=3?'최대 보강 완료':`위력 +1 · 엽전 ${6*(j.gear+1)}, 강화석 1`,j.gear>=3||j.gold<6*(j.gear+1)||j.ore<1),opt('upgrade-armor',`방호구 보강 +${j.armor} → +${j.armor+1}`,j.armor>=2?'최대 보강 완료':`방어 +1 · 엽전 ${8*(j.armor+1)}, 강화석 2`,j.armor>=2||j.gold<8*(j.armor+1)||j.ore<2),opt('buy-herb','장인이 남겨 둔 약초를 산다','엽전 3 · 체력 6 회복용',j.gold<3),opt('to-hub','정비를 마치고 다음 갈림길로 간다','이번 방문을 마침 · 재방문 불가')]};
- case 'growth':return {chapter:5,title:'이미 얻은 경험을 자기 힘으로',text:[`실전 등급 ${j.level}. 남은 성장점은 ${j.points}점이다. 지금까지 얻은 점수를 배분하는 데에는 여정 한 칸을 쓰지 않는다.`,'새 점수를 얻으려면 남은 기회 안에서 전투나 이벤트를 골라야 한다.'],choices:[...['control','skill','insight'].map((id,i)=>opt('grow-'+id,['숨의 제어를 더 정밀하게 익힌다','무기와 매개의 동작을 다듬는다','적의 흐름을 읽는 감각을 기른다'][i],`${['제어','숙련','통찰'][i]} ${s[id]} → ${s[id]+1} · 성장점 1`,j.points<1)),...abilities(s).map(a=>opt('hone-'+a.id,a.name+' 강화',`기술 단계 ${(j.skillRanks[a.id]||0)+1} / 3 · 성장점 1`,j.points<1||(j.skillRanks[a.id]||0)>=3)),opt('to-hub','배분을 마치고 여정으로 돌아간다','여정 추가 소모 없음')]};
+ case 'growth':return {chapter:5,title:'이미 얻은 경험을 자기 힘으로',text:[`실전 등급 ${j.level}. 남은 성장점은 ${j.points}점이다. 지금까지 얻은 점수를 배분하는 데에는 여정 한 칸을 쓰지 않는다.`,'새 점수를 얻으려면 남은 기회 안에서 전투나 이벤트를 골라야 한다.'],choices:[...['control','skill','insight'].map((id,i)=>opt('grow-'+id,['숨의 제어를 더 정밀하게 익힌다','무기와 매개의 동작을 다듬는다','적의 흐름을 읽는 감각을 기른다'][i],`${['제어','숙련','통찰'][i]} ${s[id]} → ${s[id]+1} · 성장점 1`,j.points<1)),...abilityCatalog(s).filter(a=>['weapon','element','counter'].includes(a.id)&&!abilities(s).some(k=>k.id===a.id)).map(a=>opt('study-'+a.id,a.name+' 배우기',a.description+' · 성장점 1',j.points<1)),...abilities(s).map(a=>opt('hone-'+a.id,a.name+' 강화',`기술 단계 ${(j.skillRanks[a.id]||0)+1} / 3 · 성장점 1`,j.points<1||(j.skillRanks[a.id]||0)>=3)),opt('to-hub','배분을 마치고 여정으로 돌아간다','여정 추가 소모 없음')]};
  case 'chapter-end':return {chapter:5,title:'경고는 이제 당신의 손에',text:['전령은 밀서를 건네고는 한동안 숨을 골랐다. “청운문의 승천지를 찾는 자들이 있었어. 내가 본 것을 전하려다가 붙잡혔지.”','여섯 번의 선택과 마지막 싸움을 거쳐, 경고는 마침내 길을 얻었다.',`빈 명부에 이름을 적던 제자 ${s.name}. 이제 당신은 다음 소식을 직접 가져갈 사람이다.`],quote:'“다음 길은 청운문으로 이어진다.”',choices:[opt('to-hub','첫 챕터의 결과로 돌아간다','이 챕터의 추가 성장과 반복 전투는 종료')]};
  default:return null;
  }
@@ -49,7 +49,7 @@ export function journeyChoose(s,id){
   if(id==='upgrade-armor'){j.gold-=8*(j.armor+1);j.ore-=2;j.armor++;s.last=`방호구 보강 +${j.armor} · 방어 +1`;}
   if(id==='buy-herb'){j.gold-=3;j.herbs++;s.last='약초 꾸러미 하나를 챙겼다.';}return s;
  }
- if(s.scene==='growth'){j.points--;if(id.startsWith('grow-')){const stat=id.slice(5);s[stat]++;s.last='성장점 1을 사용해 '+{control:'제어',skill:'숙련',insight:'통찰'}[stat]+'을 길렀다.';}else{const ability=id.slice(5);j.skillRanks[ability]=(j.skillRanks[ability]||0)+1;s.last=abilities(s).find(a=>a.id===ability).name+'을 더 깊이 익혔다.';}return s;}
+ if(s.scene==='growth'){j.points--;if(id.startsWith('grow-')){const stat=id.slice(5);s[stat]++;s.last='성장점 1을 사용해 '+{control:'제어',skill:'숙련',insight:'통찰'}[stat]+'을 길렀다.';}else if(id.startsWith('study-')){const ability=id.slice(6);grantAbility(s,ability);s.last=abilities(s).find(a=>a.id===ability).name+' 습득 · 성장점 1'+(s.loadout.includes(ability)?' · 자동 장착':' · 전투 준비에서 기술을 교체해 장착하세요');}else{const ability=id.slice(5);j.skillRanks[ability]=(j.skillRanks[ability]||0)+1;s.last=abilities(s).find(a=>a.id===ability).name+'을 더 깊이 익혔다.';}return s;}
  if(s.scene==='battle'){
   if(s.battle.rewarded)throw new Error('이미 정산한 전투');
   const z=zoneFor(s.battle.zone),won=s.battle.outcome==='victory',first=won&&!j.cleared.includes(z.id),boss=r.current?.kind==='boss',elite=r.current?.elite;

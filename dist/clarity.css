@@ -1,0 +1,76 @@
+:root{--muted:#b2bcb3}
+.game-layout.in-battle{grid-template-columns:minmax(0,1fr);max-width:900px;margin:auto;width:100%}.in-battle .sidebar{display:none}.in-battle .story{max-width:none}
+.duel-vitals{display:grid;grid-template-columns:1fr 1fr;gap:30px;padding:4px 20px 12px;background:#18271f}
+.duel-vitals .stat-label{font-size:13px;color:var(--ink)}
+.empty-skills{padding:20px;border:1px dashed var(--line);color:var(--muted);font-size:14px}
+.story[data-scene="element"] .choices,.story[data-scene="weapon"] .choices{grid-template-columns:1fr 1fr}
+.route-heading>strong{font-size:14px}.chapter-route>p{font-size:12px}
+body{font-size:15px}
+main{max-width:1160px;padding-top:30px}
+.game-layout{grid-template-columns:210px minmax(0,1fr);gap:38px}
+.story{max-width:800px}
+.chapter-nav{margin-bottom:16px;padding-bottom:12px}
+.story h1{font-size:30px;margin-bottom:18px}
+.story>.eyebrow{display:none}
+.scene-art{height:170px;margin-bottom:18px}
+.prose{font:16px/1.9 'Noto Sans KR',sans-serif;color:#e2e5da}
+.prose p{margin-bottom:12px}
+.story-detail{font-size:14px;margin:8px 0 16px}
+details>summary{cursor:pointer;min-height:40px;display:flex;align-items:center;gap:10px;color:var(--muted);font-size:13px}
+details[open]>summary{color:var(--gold);margin-bottom:10px}
+details>summary:after{content:'＋';margin-left:auto;color:var(--gold)}
+details[open]>summary:after{content:'−'}
+details>summary:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+.profile{margin-bottom:8px}.profile h2{font-size:24px}
+.build-line{font-size:13px;color:var(--muted);margin:12px 0}
+.vitals{margin:18px 0}
+.stat-label{font-size:12px}.bar{height:5px}
+.basic-kit,.combat-plan{display:flex;gap:8px;flex-wrap:wrap}
+.basic-kit span,.combat-plan span{padding:5px 10px;background:#25332e;border:1px solid #52634f;border-radius:4px;font-size:13px}
+.combat-plan .equipped-skill{background:#3b3d29;border-color:#b3a574;color:#e6d8a8}
+.kit-note{font-size:12px}.profile-details{border-top:1px solid var(--line);padding-top:10px;margin-top:20px}
+.profile-details summary{flex-wrap:wrap}.profile-details summary span{font-size:12px}
+.detail-body{font-size:13px}.known-arts{margin-top:14px;padding-top:12px}
+.known-arts p,.known-arts details{font-size:12px}
+.journey-progress p{font-size:12px}
+.choice-caption{font-size:12px;letter-spacing:0;margin-top:22px}
+.choice{padding:17px 18px;border-radius:7px}
+.choice strong{font-size:16px;font-weight:600}
+.choice small{font-size:13px;line-height:1.7;margin-top:6px}
+.choice .num{font-size:12px}
+.management,.loadout-details,.battle-details{border-top:1px solid var(--line);margin-top:16px;padding-top:5px}
+.management .choices{margin:12px 0}.management .choice strong{font-size:14px}
+.preparation{padding:20px;margin-top:20px}
+.combat-plan{margin-top:16px}
+.section-title small{font-size:12px}
+.notice{font-size:13px;margin-bottom:18px;padding:12px 15px}
+.journey-summary{display:flex;gap:22px;font-size:13px;color:var(--muted);margin:18px 0 8px}
+.journey-summary b{color:var(--gold);margin-left:6px}
+.chapter-route{margin:12px 0 22px}
+.route-option-copy h3{font-size:19px}.route-option-copy p{font-size:13px}.route-option-copy strong{font-size:13px}
+.route-options .route-option{border-radius:7px}
+.more-lessons{grid-column:1/-1}.more-lessons[open]{display:grid;grid-template-columns:1fr 1fr;gap:12px}.more-lessons>summary{grid-column:1/-1}
+.catalog-tabs{margin-top:18px}.catalog-filter{font-size:13px}
+.item-copy small,.item-copy>span,.art-card>small,.recipe-card>small{font-size:12px}
+.item-copy p,.art-card p:not(.eyebrow),.recipe-card p:not(.eyebrow){font-size:13px}
+.catalog-action{font-size:14px}
+.battle-controls{flex-wrap:wrap;justify-content:flex-start;gap:8px;padding:12px}
+.battle-controls button,.speed-label,.speed-label select{font-size:12px}
+.battle-details{padding:0 14px;margin:0}.battle-details>summary{min-height:45px}
+.exchange-summary{font-size:14px}
+.story-bottom{margin-top:24px}.saved{font-size:11px}
+@media(max-width:800px){
+ main{padding:20px 16px}.game-layout{grid-template-columns:1fr;gap:20px}
+ .sidebar{display:block;padding:14px 16px;border:1px solid var(--line);border-radius:7px;position:static}
+ .sidebar .profile{display:flex;margin:0;justify-content:space-between}.sidebar .profile h2{font-size:20px}
+ .build-line{font-size:12px;margin:4px 0 12px}.vitals{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:10px 0}
+ .basic-kit,.kit-note{display:none}.profile-details{margin:10px 0 0;padding:0}.profile-details summary{min-height:34px}
+ .profile-details .known-arts{display:block}.profile-details .known-arts p{max-width:none}
+ .scene-art{height:120px}.story h1{font-size:25px;margin-bottom:14px}.prose{font-size:15px}
+ .choice strong{font-size:15px}.choice small{font-size:12px}.choice{padding:15px 13px}
+ .chapter-nav{font-size:11px;margin-bottom:14px}.route-track small{font-size:10px}
+ .preparation{padding:16px}.more-lessons[open]{grid-template-columns:1fr}
+ .combat-numbers{grid-template-columns:1fr 1fr}.combat-numbers span{font-size:12px}
+ .loadout-details summary{font-size:12px}.route-option-copy h3{font-size:18px}
+ .battle-controls{gap:5px}.battle-controls button{font-size:12px}
+}

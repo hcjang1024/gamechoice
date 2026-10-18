@@ -4,7 +4,7 @@ import {initial,choose,scene,art,elements,weapons,migrate,relationshipEvents} fr
 import {abilities,combatStats,beginBattle,tickBattle,fastForward} from './dist/combat.mjs';
 
 function prepared(path='inner',element=0,weapon=0,training=['control','skill','partner'],name='테스트 제자'){
- let s=initial(name);for(const id of ['observe','try-'+path,'commit','element-'+element,'weapon-'+weapon,...training])s=choose(s,id);return s;
+ let s=initial(name);for(const id of ['observe','try-'+path,'commit','element-'+element,'weapon-'+weapon,...training])s=choose(s,id);return s.scene==='first-lesson'?choose(s,'pick-element'):s;
 }
 function battle(s,approach='guard'){return choose(choose(s,approach),'start-battle');}
 test('84가지 길·결·무기 조합이 실제 전투와 첫 깨달음까지 이어진다',()=>{
@@ -29,8 +29,8 @@ test('함께한 수련은 한 번만 가능하며, 수치가 없어도 구조 �
  s.scene='bridge';s.energy=1;s.control=0;s.insight=0;assert.equal(scene(s).choices.find(c=>c.id==='both').disabled,false);
  s=choose(s,'both');assert.equal(s.energy,0);assert.ok(s.relations.includes('shared-rescue'));
 });
-test('수련에 따라 배운 기술이 열리고 미장착 기술은 자동 전투에서 쓰지 않는다',()=>{
- let s=prepared();assert.deepEqual(abilities(s).map(x=>x.id),['weapon','element','counter']);s.loadout=['counter'];s=fastForward(battle(s));
+test('직접 선택한 기술 하나만 익히며 미장착 기술은 자동 전투에서 쓰지 않는다',()=>{
+ let s=prepared();assert.deepEqual(abilities(s).map(x=>x.id),['element']);s.loadout=[];s=fastForward(battle(s));
  assert.ok(!s.battle.log.some(x=>x.skill==='흘림검'||x.skill==='물결 · 결의 발경'));assert.ok(s.battle.log.some(x=>x.actor==='player'));
 });
 test('무기의 속도·위력·사거리가 전투에 반영된다',()=>{
@@ -57,7 +57,7 @@ test('패배해도 결과 확인 전에는 진행할 수 없고, 처치 후 서�
 });
 test('이전 버전 저장은 이름과 진행을 보존하고 숫자 관계를 사건으로 변환한다',()=>{
  const legacy={...prepared(),version:1,trust:3};delete legacy.relations;legacy.journal.push({scene:'수련',choice:'이솔과 서로의 빈틈을 짚어 준다'});
- const next=migrate(legacy);assert.equal(next.version,5);assert.equal(next.name,legacy.name);assert.equal(next.scene,legacy.scene);assert.ok(!('trust' in next));assert.ok(next.relations.includes('shared-practice'));assert.throws(()=>migrate({...next,weapon:'없는 무기'}));
+ const next=migrate(legacy);assert.equal(next.version,6);assert.equal(next.name,legacy.name);assert.equal(next.scene,legacy.scene);assert.ok(!('trust' in next));assert.ok(next.relations.includes('shared-practice'));assert.throws(()=>migrate({...next,weapon:'없는 무기'}));
 });
 test('수련·접근·기술 구성 조합에서 전투는 끝나고 자원이 범위를 벗어나지 않는다',()=>{
  const options=['control','skill','insight','partner'];let completed=0;
