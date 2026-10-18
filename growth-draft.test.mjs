@@ -11,12 +11,11 @@ function hero(path='inner',name='보상 실험'){
  return startJourney(Object.assign(initial(name),{path,weapon:'검',element:'물',control:4,skill:3,insight:2,learnedSkills:['weapon'],loadout:['weapon'],flags:['art-control']}));
 }
 const chooseOffer=(s,id)=>choose(withGrowthChoice(s,id),id);
-test('every growth draft has exactly three distinct eligible rewards, including two skills when available',()=>{
+test('every growth draft has exactly three distinct eligible rewards from the shared pool',()=>{
  const types=new Set(),drafts=new Set();
  for(const path of ['inner','outer'])for(const weapon of weapons)for(const element of elements)for(let i=0;i<5;i++){
   const s=hero(path,'후보 '+i);s.weapon=weapon;s.element=element;delete s.journey.growthDraft;s.journey.growthSeed=(Math.imul(i+1,2654435761)+weapon.length+elements.indexOf(element))>>>0;
   const pool=growthPool(s),choices=growthChoices(s);assert.equal(choices.length,3);assert.equal(new Set(choices.map(c=>c.id)).size,3);
-  assert.equal(choices.filter(c=>['skill','upgrade'].includes(c.rewardType)).length>=Math.min(2,pool.skills.length),true);
   for(const c of choices){types.add(c.rewardType);assert.equal(c.disabled,false);assert.ok([...pool.skills,...pool.stats,...pool.items].some(a=>a.id===c.id));}
   drafts.add(choices.map(c=>c.id).join(','));
  }
@@ -97,3 +96,13 @@ test('fusion produces a distinct named skill on both paths and retains the new n
  }
 });
 
+
+test('no category is guaranteed: three skills, three stats or three items can each be offered',()=>{
+ const cases=[['skill',2027808452],['stat',3357192724],['item',3041712678]];
+ for(const [type,seed]of cases){
+  const s=hero();s.journey.growthSeed=seed;delete s.journey.growthDraft;
+  const choices=growthChoices(s);assert.equal(choices.length,3);
+  assert.ok(choices.every(c=>(c.rewardType==='upgrade'?'skill':c.rewardType)===type));
+  assert.deepEqual(scene(migrate(JSON.parse(JSON.stringify(s)))).choices,choices);
+ }
+});

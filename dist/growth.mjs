@@ -25,17 +25,10 @@ export function ensureGrowthDraft(s){
  if(j.growthDraft?.ids?.length===3&&new Set(j.growthDraft.ids).size===3&&j.growthDraft.ids.every(id=>available.has(id)))return;
  const random=()=>{let x=j.growthSeed||1;x^=x<<13;x^=x>>>17;x^=x<<5;j.growthSeed=x>>>0;return j.growthSeed/4294967296;};
  const pick=list=>list.splice(Math.floor(random()*list.length),1)[0];
- const selected=[],skills=[...pool.skills];
- for(let i=0;i<2&&skills.length;i++)selected.push(pick(skills));
- // The last slot may be another skill, one stat, or an item. Category weights
- // keep the item catalogue from crowding stats and skills out of the draft.
- const categories=[...(skills.length?[skills]:[]),pool.stats,pool.stats,pool.items,pool.items].filter(a=>a.length);
- while(selected.length<3){
-  const remaining=categories.map(list=>list.filter(c=>!selected.some(k=>k.id===c.id))).filter(list=>list.length);
-  selected.push(pick(pick([...remaining])));
- }
- // Card positions do not reveal which category was selected first.
- for(let i=selected.length-1;i>0;i--){const k=Math.floor(random()*(i+1));[selected[i],selected[k]]=[selected[k],selected[i]];}
+ // Sample without replacement from one shared pool. Every eligible reward
+ // has the same chance; no category receives reserved slots or extra weight.
+ const remaining=[...all],selected=[];
+ while(selected.length<3)selected.push(pick(remaining));
  j.growthDraft={round:j.growthRound,ids:selected.map(c=>c.id)};
 }
 export function growthChoices(s){
