@@ -39,8 +39,8 @@ test('무기의 속도·위력·사거리가 전투에 반영된다',()=>{
 });
 test('결의 효과가 실제 상태와 자원을 바꾼다',()=>{
  for(let i=0;i<elements.length;i++){
-  let s=battle(prepared('outer',i,1));s.battle.seed=1;s.battle.actor='player';s.loadout=['element'];s.hp=7;const next=tickBattle(s);
-  assert.equal(next.energy,s.energy-2);assert.ok(next.battle.enemy.hp<s.battle.enemy.hp);
+  let s=battle(prepared('outer',i,1));s.battle.seed=1;s.battle.actor='player';s.loadout=['element'];s.hp=7;const primed=tickBattle(s);assert.equal(primed.battle.enemy.hp,s.battle.enemy.hp);assert.ok(primed.battle.pathState.casting);assert.equal(primed.energy,s.energy-2);primed.battle.actor='player';const next=tickBattle(primed);
+  assert.equal(next.energy,primed.energy+1);assert.ok(next.battle.enemy.hp<s.battle.enemy.hp);
   if(elements[i]==='물')assert.ok(next.battle.playerShield>s.battle.playerShield);
   if(elements[i]==='흙')assert.equal(next.battle.playerShield,s.battle.playerShield+2);
   if(elements[i]==='불')assert.equal(next.battle.statuses.enemy.burn.turns,2);

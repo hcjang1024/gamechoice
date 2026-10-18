@@ -1,3 +1,4 @@
+import {adaptArt,ensurePathState} from './paths.mjs';
 import {elementStatus,statusRules,ensureStatuses,statusFor,applyStatus,statusModifiers,decayStatuses} from './statuses.mjs';
 import {equipmentBonus,extraArts} from './workshop.mjs';
 // Combat is deterministic and serializable so reloading cannot reroll a fight.
@@ -20,7 +21,7 @@ export function abilityCatalog(s){
  list.push({id:'counter',name:'간파 반격',cost:1,description:'다음 피해 2 감소 · 막아낸 뒤 반격',kind:'방어 기술'});
  const signature=s.flags.find(f=>/^art-(control|skill|insight)$/.test(f));
  if(signature)list.push({id:'signature',name:`${s.element}결 · ${{'art-control':'고른 숨','art-skill':'첫 궤적','art-insight':'읽는 흐름'}[signature]}`,cost:3,description:'서장에서 얻은 깨달음 · 강한 일격과 자신만의 운용',kind:'고유 기술'});
- return [...list,...extraArts(s)].map(a=>({...a,rank:s.journey?.skillRanks[a.id]||0,name:a.name+((s.journey?.skillRanks[a.id]||0)>0?' +'+s.journey.skillRanks[a.id]:'')}));
+ return [...list,...extraArts(s)].map(a=>adaptArt(s,a)).map(a=>({...a,rank:s.journey?.skillRanks[a.id]||0,name:a.name+((s.journey?.skillRanks[a.id]||0)>0?' +'+s.journey.skillRanks[a.id]:'')}));
 }
 export function abilities(s){return abilityCatalog(s).filter(a=>a.id==='signature'||(s.learnedSkills||[]).includes(a.id)||s.journey?.learned?.includes(a.id));}
 export function grantAbility(s,id){s.learnedSkills??=[];if(['weapon','element','counter'].includes(id)&&!s.learnedSkills.includes(id))s.learnedSkills.push(id);const known=abilities(s).map(a=>a.id);s.loadout=(s.loadout??[]).filter(id=>known.includes(id));if(s.loadout.length<2&&!s.loadout.includes(id))s.loadout.push(id);}
@@ -33,7 +34,7 @@ export function beginBattle(state,config={}){
  const enemy={name:'다리의 약탈자',hp:25,attack:3,defense:1,speed:3,weapon:'짧은 칼',heavyEvery:3,heavyBonus:2,...config.enemy};
  const first=stats.speed>=enemy.speed||s.flags.includes('advantage')?'player':'enemy';
  const initialShield=s.journey?.prepBuffs?.shield||0;
- s.scene='battle';s.last='';s.battle={version:3,context:config.context||'prologue',zone:config.zone||null,seed:seedFor(s),round:1,actor:first,first,enemy:{...enemy,maxHp:enemy.hp,burn:0,stun:0,weaken:0},statuses:{player:{},enemy:{}},playerShield:initialShield,counter:false,counterElement:false,cooldowns:{},turn:0,outcome:null,log:[],effects:[],start:{hp:s.hp,energy:s.energy},stats};
+ s.scene='battle';s.last='';s.battle={version:4,context:config.context||'prologue',zone:config.zone||null,seed:seedFor(s),round:1,actor:first,first,enemy:{...enemy,maxHp:enemy.hp,burn:0,stun:0,weaken:0},pathState:{mode:s.path,vigor:0,casting:null,field:null,renewal:0,release:0},statuses:{player:{},enemy:{}},playerShield:initialShield,counter:false,counterElement:false,cooldowns:{},turn:0,outcome:null,log:[],effects:[],start:{hp:s.hp,energy:s.energy},stats};
  if(s.journey)s.journey.prepBuffs={};
  log(s,'system',`${s.name} · ${s.weapon} / ${s.path==='inner'?'내공 운용':'외부 숨 인도'}. ${first==='player'?'당신이 먼저 움직인다.':'적이 먼저 거리를 좁힌다.'}`);
  return s;
@@ -48,7 +49,7 @@ function statusDamage(s,side,id,amount){const name=statusRules[id].name;if(side=
 function bleedOnAttack(s,side){if(statusFor(s,side,'bleed'))statusDamage(s,side,'bleed',1);return side==='player'?s.hp<=0:s.battle.enemy.hp<=0;}
 function beginStatusTurn(s,side){const b=s.battle;if(statusFor(s,side,'burn'))statusDamage(s,side,'burn',1);if(side==='player'&&statusFor(s,side,'corrosion')&&b.playerShield>0){b.playerShield--;emit(s,'status','effect',side,'부식 · 보호막 -1');log(s,'effect','부식으로 보호막 1이 사라졌다.');}if(statusFor(s,side,'shock')){if(side==='player')for(const id of Object.keys(b.cooldowns))b.cooldowns[id]++;emit(s,'status','effect',side,'감전 · 기술 봉쇄');log(s,'effect','감전으로 이번 행동에는 기본 공격과 방어만 사용할 수 있다.');} }
 export function effectiveStats(s){const inCombat=s.scene==='battle'||(s.scene==='growth'&&s.journey?.growthReturn==='battle');const stats=inCombat&&s.battle?s.battle.stats:combatStats(s),m=inCombat?statusModifiers(s,'player'):{attack:0,defense:0,accuracy:0};return {...stats,attack:Math.max(1,stats.attack-m.attack),defense:Math.max(0,stats.defense-m.defense),accuracy:Math.max(.05,stats.accuracy-m.accuracy)};}
-function playerTurn(s){
+function innerTurn(s){
  const b=s.battle,e=b.enemy,p=weaponProfiles[s.weapon];for(const id of Object.keys(b.cooldowns))b.cooldowns[id]=Math.max(0,b.cooldowns[id]-1);
  const known=statusModifiers(s,'player').skillLocked?[]:abilities(s).filter(a=>s.loadout.includes(a.id));
  let chosen;
@@ -59,37 +60,81 @@ function playerTurn(s){
  if(!chosen&&s.energy<2)chosen=known.find(a=>a.id==='focus'&&ready(a));
  if(!chosen&&(heavySoon||s.hp<=maxHp(s)*.4)&&!b.counter&&b.playerShield<2)chosen=['flow-counter','aegis','counter','guard'].map(id=>known.find(a=>a.id===id)).find(a=>a&&ready(a));
  chosen??=known.find(a=>ready(a)&&!support.has(a.id));
- if(!chosen&&heavySoon&&b.playerShield<2){b.playerShield+=2;emit(s,'guard','player','player','기본 방어',2);log(s,'player','기본 방어 — 강한 공격에 대비해 피해를 2 막는다.',{skill:'기본 방어'});return;}
- if(!chosen&&s.energy<Math.max(2,...known.map(a=>a.cost))&&known.some(a=>!support.has(a.id))&&b.turn%3===0){const amount=Math.min(maxEnergy(s)-s.energy,(s.path==='outer'?3:2)-statusModifiers(s,'player').recovery);s.energy+=amount;b.playerShield++;emit(s,'recover','player','player','회복 호흡',amount);log(s,'player',`${s.path==='outer'?'외부의 숨을 다시 끌어온다':'호흡을 가다듬어 숨을 모은다'}. 숨 +${amount}, 보호막 +1.`,{skill:'회복 호흡'});return;}
- if(chosen){s.energy-=chosen.cost;b.cooldowns[chosen.id]=['counter','signature','flow-counter','focus','mend','tempest'].includes(chosen.id)?3:2;
+ if(!chosen&&heavySoon&&b.playerShield<2){b.playerShield+=2;gainVigor(s,1);s.energy=Math.min(maxEnergy(s),s.energy+Math.max(0,1-statusModifiers(s,'player').recovery));emit(s,'guard','player','player','기본 방어',2);log(s,'player','기본 방어 — 강한 공격에 대비해 피해를 2 막는다.',{skill:'기본 방어'});return;}
+ if(!chosen&&s.energy<Math.max(2,...known.map(a=>a.cost))&&known.some(a=>!support.has(a.id))&&b.turn%3===0){const amount=Math.min(maxEnergy(s)-s.energy,(s.path==='outer'?3:2)-statusModifiers(s,'player').recovery);s.energy+=amount;gainVigor(s,1);b.playerShield++;emit(s,'recover','player','player','회복 호흡',amount);log(s,'player',`${s.path==='outer'?'외부의 숨을 다시 끌어온다':'호흡을 가다듬어 숨을 모은다'}. 숨 +${amount}, 보호막 +1.`,{skill:'회복 호흡'});return;}
+ if(chosen){const stored=ensurePathState(s);stored.release=['focus','mend'].includes(chosen.id)?0:stored.vigor;if(stored.release){stored.vigor=0;emit(s,'status','player','player','축기 '+stored.release+' 방출');}s.energy-=chosen.cost;b.cooldowns[chosen.id]=['counter','signature','flow-counter','focus','mend','tempest'].includes(chosen.id)?3:2;
   if(chosen.id==='mend'){const gain=Math.min(Math.floor((4+chosen.rank)*statusModifiers(s,'player').healing),maxHp(s)-s.hp);s.hp+=gain;emit(s,'heal','player','player',chosen.name,gain);log(s,'player',`${chosen.name}. 체력 ${gain} 회복.`,{skill:chosen.name});return;}
-  if(chosen.id==='focus'){const gain=Math.min(Math.max(0,3+chosen.rank-statusModifiers(s,'player').recovery),maxEnergy(s)-s.energy);s.energy+=gain;emit(s,'recover','player','player',chosen.name,gain);log(s,'player',`${chosen.name}. 숨 ${gain} 회복.`,{skill:chosen.name});return;}
-  if(['counter','flow-counter','guard','aegis'].includes(chosen.id)){const amount=({counter:2,'flow-counter':3,guard:3,aegis:5}[chosen.id])+chosen.rank;b.playerShield+=amount;b.counter=['counter','flow-counter'].includes(chosen.id);b.counterElement=chosen.id==='flow-counter';emit(s,'guard','player','player',chosen.name,amount);log(s,'player',`${chosen.name}. 보호막 +${amount}${b.counter?' · 반격 태세':''}.`,{skill:chosen.name});return;}
+  if(chosen.id==='focus'){gainVigor(s,2);const gain=Math.min(Math.max(0,3+chosen.rank-statusModifiers(s,'player').recovery),maxEnergy(s)-s.energy);s.energy+=gain;emit(s,'recover','player','player',chosen.name,gain);log(s,'player',`${chosen.name}. 숨 ${gain} 회복.`,{skill:chosen.name});return;}
+  if(['counter','flow-counter','guard','aegis'].includes(chosen.id)){const amount=({counter:2,'flow-counter':3,guard:3,aegis:5}[chosen.id])+chosen.rank+ensurePathState(s).release;b.counterPower=ensurePathState(s).release;b.playerShield+=amount;b.counter=['counter','flow-counter'].includes(chosen.id);b.counterElement=chosen.id==='flow-counter';emit(s,'guard','player','player',chosen.name,amount);log(s,'player',`${chosen.name}. 보호막 +${amount}${b.counter?' · 반격 태세':''}.`,{skill:chosen.name});return;}
   if(bleedOnAttack(s,'player'))return;
   const elemental=chosen.id==='element',signature=chosen.id==='signature';const boost=(signature?4+Math.max(s.control,s.skill):['infused','tempest'].includes(chosen.id)?3+s.control+s.skill*.5:elemental?2+s.control+s.insight*.5:2+s.skill*.5)+chosen.rank*1.5;
-  const hit=strike(s,b.stats.attack+boost+(s.element==='번개'?1:0),{pierce:s.element==='쇠'||(!elemental&&s.weapon==='도'),accuracy:signature&&s.flags.includes('art-insight')?.15:!elemental&&s.weapon==='활'?.12:0});
+  const hit=strike(s,b.stats.attack+boost+ensurePathState(s).release*2+(s.element==='번개'?1:0),{pierce:s.element==='쇠'||(!elemental&&s.weapon==='도'),accuracy:signature&&s.flags.includes('art-insight')?.15:!elemental&&s.weapon==='활'?.12:0});
   let text=hit.miss?`${chosen.name} — 적이 궤적을 벗어났다.`:`${chosen.name} — ${hit.damage} 피해${hit.critical?' · 치명타':''}.`;
   emit(s,hit.miss?'dodge':'skill','player','enemy',chosen.name,hit.damage||0,{critical:!!hit.critical});
   if(hit.blocked)emit(s,'block','enemy','enemy','적의 방어',hit.blocked);
   if(!hit.miss){text+=' '+elementEffect(s);if(signature&&s.flags.includes('art-control')){b.playerShield+=2+chosen.rank;emit(s,'guard','player','player','고른 숨의 수비',2+chosen.rank);}if(!elemental){if((s.weapon==='맨손'||['chain','tempest'].includes(chosen.id))&&e.hp>0){const extraHits=chosen.id==='tempest'?2:1;for(let n=0;n<extraHits&&e.hp>0;n++){const second=Math.max(1,Math.floor(hit.damage/2));e.hp=Math.max(0,e.hp-second);text+=` 연타 ${second} 피해.`;emit(s,'attack','player','enemy','연속 타격',second);}}if(s.weapon==='검'){b.playerShield++;emit(s,'guard','player','player','검의 흘리기',1);}if(s.weapon==='창')e.weaken=2;if(s.weapon==='지팡이'){b.playerShield+=2;emit(s,'guard','player','player','지팡이의 수비',2);}}}
   log(s,'player',text,{skill:chosen.name});
- }else{if(bleedOnAttack(s,'player'))return;const hit=strike(s,b.stats.attack,{accuracy:s.weapon==='활'?.07:0});emit(s,hit.miss?'dodge':'attack','player','enemy',p.basic,hit.damage||0,{critical:!!hit.critical});if(hit.blocked)emit(s,'block','enemy','enemy','적의 방어',hit.blocked);log(s,'player',hit.miss?`${p.basic} — 빗나갔다.`:`${p.basic} — ${hit.damage} 피해${hit.critical?' · 치명타':''}.`,{skill:p.basic});}
+ }else{if(bleedOnAttack(s,'player'))return;const hit=strike(s,b.stats.attack,{accuracy:s.weapon==='활'?.07:0});gainVigor(s,1);emit(s,hit.miss?'dodge':'attack','player','enemy',p.basic,hit.damage||0,{critical:!!hit.critical});if(hit.blocked)emit(s,'block','enemy','enemy','적의 방어',hit.blocked);log(s,'player',hit.miss?`${p.basic} — 빗나갔다.`:`${p.basic} — ${hit.damage} 피해${hit.critical?' · 치명타':''}.`,{skill:p.basic});}
 }
-function enemyTurn(s){const b=s.battle,e=b.enemy;if(e.stun>0){e.stun--;emit(s,'stun','enemy','enemy','경직');log(s,'enemy','적이 번개의 경직으로 움직이지 못했다.');return;}
+function gainVigor(s,amount){const p=ensurePathState(s);if(s.path!=='inner')return;const before=p.vigor;p.vigor=Math.min(3,p.vigor+amount);if(p.vigor>before)emit(s,'status','player','player','축기 '+p.vigor+'/3');}
+function outerGuard(s){s.battle.playerShield+=2;emit(s,'guard','player','player','기본 방어',2);log(s,'player','기본 방어 — 다음 주문을 펼칠 틈을 지킨다.',{skill:'기본 방어'});}
+function setField(s,turns,ward=false){ensurePathState(s).field={turns,element:s.element,ward};emit(s,'status','player','enemy',s.element+'결 영역 · '+turns+'회 유지');}
+function releaseSpell(s,a){
+ const b=s.battle,e=b.enemy;let hits=a.id==='tempest'?3:a.id==='chain'||(a.id==='signature'&&s.flags.includes('art-skill'))?2:1;
+ const shield=a.id==='signature'&&s.flags.includes('art-control')?4+a.rank:0;if(shield){b.playerShield+=shield;emit(s,'guard','player','player','유지 결계',shield);}
+ if(bleedOnAttack(s,'player'))return;
+ for(let i=0;i<hits&&e.hp>0;i++){const boost=(a.id==='signature'?5+s.control:a.id==='tempest'?3+s.control:4+s.control+s.insight*.5)+a.rank*1.5;const scale=hits>1?(i===0?1:.55):1;
+  const hit=strike(s,(b.stats.attack+boost)*scale,{pierce:['infused','signature'].includes(a.id)||s.element==='쇠'||s.weapon==='창'||s.weapon==='검',accuracy:s.weapon==='활'?.16:.05});
+  emit(s,hit.miss?'dodge':'skill','player','enemy',a.name+(hits>1?' · '+(i+1)+'탄':''),hit.damage||0,{critical:!!hit.critical,magic:true});
+  if(hit.blocked)emit(s,'block','enemy','enemy','적의 방어',hit.blocked);
+  log(s,'player',a.name+' 발동 — '+(hit.miss?'투사체가 빗나갔다.':hit.damage+' 피해.'),{skill:a.name});
+  if(!hit.miss){elementEffect(s);if(s.weapon==='도'){const splash=2+a.rank;e.hp=Math.max(0,e.hp-splash);emit(s,'skill','player','enemy','파열하는 매개',splash,{magic:true});}if(s.weapon==='맨손'){e.weaken=2;emit(s,'status','player','enemy','수인의 속박 · 위력 약화');}if(s.weapon==='지팡이'){b.playerShield+=2;emit(s,'guard','player','player','매개의 안정',2);}}
+ }
+ if(['element','infused','tempest'].includes(a.id)||a.id==='signature')setField(s,a.id==='tempest'?3:2,a.id==='signature'&&s.flags.includes('art-control'));
+ if(a.id==='signature'&&s.flags.includes('art-insight')){e.disrupted=2;e.counterReady=false;emit(s,'status','player','enemy','술식 파훼 · 강타 봉쇄');}
+}
+function outerTurn(s){
+ const b=s.battle,p=ensurePathState(s);for(const id of Object.keys(b.cooldowns))b.cooldowns[id]=Math.max(0,b.cooldowns[id]-1);
+ if(p.renewal>0){p.renewal--;const gain=Math.min(Math.floor((p.renewalPower||2)*statusModifiers(s,'player').healing),maxHp(s)-s.hp);s.hp+=gain;emit(s,'heal','player','player','생기 순환',gain);log(s,'player','유지 중인 순환술로 체력 '+gain+' 회복.');}
+ if(p.casting){const pending=p.casting;
+  if(statusModifiers(s,'player').skillLocked){p.casting=null;emit(s,'status','enemy','player','감전 · 주문 끊김');log(s,'player','감전으로 준비한 주문의 연결이 끊겼다.');}
+  else{p.casting=null;const current=abilities(s).find(a=>a.id===pending.id);if(current){b.cooldowns[current.id]=['signature','tempest'].includes(current.id)?3:2;releaseSpell(s,current);return;}}
+ }
+ const known=statusModifiers(s,'player').skillLocked?[]:abilities(s).filter(a=>s.loadout.includes(a.id)),ready=a=>!b.cooldowns[a.id]&&s.energy>=a.cost;
+ const next=b.first==='player'?b.round:b.round+1,heavySoon=next%(b.enemy.heavyEvery||3)===0;
+ let chosen;if(s.hp<=maxHp(s)*.5&&!p.renewal)chosen=known.find(a=>a.id==='mend'&&ready(a));
+ if(!chosen&&s.energy<2)chosen=known.find(a=>a.id==='focus'&&ready(a));
+ if(!chosen&&(heavySoon||s.hp<=maxHp(s)*.4))chosen=known.find(a=>['counter','flow-counter','guard','aegis'].includes(a.id)&&ready(a));
+ chosen??=known.find(a=>a.mode==='cast'&&ready(a));
+ if(chosen&&chosen.mode==='cast'&&heavySoon&&b.playerShield<2&&!b.enemy.disrupted){outerGuard(s);return;}
+ if(chosen){s.energy-=chosen.cost;
+  if(chosen.mode==='cast'){p.casting={id:chosen.id,name:chosen.name,cost:chosen.cost};emit(s,'cast','player','player',chosen.name+' 준비',0,{magic:true});log(s,'player',chosen.name+' 준비 — 다음 내 행동에 발동한다. 주변 숨 -'+chosen.cost+'.',{skill:chosen.name+' 준비'});return;}
+  b.cooldowns[chosen.id]=3;
+  if(chosen.mode==='disrupt'){const shield=2+chosen.rank;b.enemy.disrupted=(chosen.id==='flow-counter'?2:1)+Math.floor(chosen.rank/2);b.enemy.counterReady=false;b.playerShield+=shield;emit(s,'guard','player','player',chosen.name,shield);emit(s,'status','player','enemy','강타·반격 준비 봉쇄');if(chosen.id==='flow-counter')inflict(s,'enemy',s.element);log(s,'player',chosen.name+' — 적의 강타와 반격 준비를 막는다.',{skill:chosen.name});return;}
+  if(chosen.mode==='ward'){const amount=3+chosen.rank;b.playerShield+=amount;if(chosen.id==='aegis')setField(s,3,true);emit(s,'guard','player','player',chosen.name,amount);log(s,'player',chosen.name+' — 보호막 '+amount+'.',{skill:chosen.name});return;}
+  if(chosen.mode==='renew'){p.renewal=3;p.renewalPower=2+chosen.rank;emit(s,'status','player','player','생기 순환 · 3회 유지');log(s,'player',chosen.name+' — 다음 세 행동에 회복을 유지한다.',{skill:chosen.name});return;}
+  if(chosen.mode==='focus'){const gain=Math.min(Math.max(0,3+chosen.rank-statusModifiers(s,'player').recovery),maxEnergy(s)-s.energy);s.energy+=gain;emit(s,'recover','player','player',chosen.name,gain);log(s,'player',chosen.name+' — 주변 숨 '+gain+' 인도.',{skill:chosen.name});return;}
+ }
+ if(heavySoon&&b.playerShield<2){outerGuard(s);return;}
+ if(bleedOnAttack(s,'player'))return;const hit=strike(s,b.stats.attack,{accuracy:s.weapon==='활'?.07:0});emit(s,hit.miss?'dodge':'attack','player','enemy',weaponProfiles[s.weapon].basic,hit.damage||0);if(hit.blocked)emit(s,'block','enemy','enemy','적의 방어',hit.blocked);log(s,'player',weaponProfiles[s.weapon].basic+' — '+(hit.miss?'빗나갔다.':hit.damage+' 피해.'),{skill:weaponProfiles[s.weapon].basic});
+}
+function playerTurn(s){ensurePathState(s);if(s.path==='outer'){const gain=Math.min(Math.max(0,1-statusModifiers(s,'player').recovery),maxEnergy(s)-s.energy);if(gain){s.energy+=gain;emit(s,'recover','player','player','주변 숨 유입',gain);}outerTurn(s);}else innerTurn(s);}
+function enemyTurn(s){const b=s.battle,e=b.enemy,p=ensurePathState(s);if(s.path==='outer'&&p.field){const field=p.field;if(field.ward){b.playerShield++;emit(s,'guard','player','player','유지 결계 보충',1);}inflict(s,'enemy',field.element);field.turns--;log(s,'player','유지한 '+field.element+'결 영역이 적을 감싼다.');if(field.turns<=0)p.field=null;}if(e.stun>0){e.stun--;emit(s,'stun','enemy','enemy','경직');log(s,'enemy','적이 번개의 경직으로 움직이지 못했다.');return;}
  if(b.round===1&&b.stats.range>0){emit(s,'move','enemy','enemy','거리 좁히기');log(s,'enemy',`${s.weapon}의 사거리 때문에 적이 접근에 한 차례를 썼다.`);return;}
- if(!statusModifiers(s,'enemy').skillLocked&&e.counterEvery&&b.round%e.counterEvery===0&&!e.counterReady){e.counterReady=true;emit(s,'guard','enemy','enemy','우두머리의 반격 태세');log(s,'enemy','우두머리가 칼을 거두고 반격을 준비한다.');return;}
+ if(!e.disrupted&&!statusModifiers(s,'enemy').skillLocked&&e.counterEvery&&b.round%e.counterEvery===0&&!e.counterReady){e.counterReady=true;emit(s,'guard','enemy','enemy','우두머리의 반격 태세');log(s,'enemy','우두머리가 칼을 거두고 반격을 준비한다.');return;}
  if(bleedOnAttack(s,'enemy'))return;
  if(statusModifiers(s,'enemy').accuracy&&random(b)<statusModifiers(s,'enemy').accuracy){emit(s,'dodge','enemy','player','흔들림 · 빗나감');log(s,'enemy','흔들리는 자세 때문에 공격이 빗나갔다.');return;}
  if(random(b)<b.stats.evasion){emit(s,'dodge','enemy','player','회피');log(s,'enemy',`${e.weapon||'짧은 칼'}이 허공을 가른다. 공격을 피했다.`);return;}
- const heavy=!statusModifiers(s,'enemy').skillLocked&&b.round%(e.heavyEvery||3)===0;let power=Math.max(1,e.attack-statusModifiers(s,'enemy').attack)+(heavy?(e.heavyBonus??2):0);if(e.weaken>0){e.weaken--;power=Math.max(1,power-2);}power=Math.max(1,power-effectiveStats(s).defense);
+ const heavy=!e.disrupted&&!statusModifiers(s,'enemy').skillLocked&&b.round%(e.heavyEvery||3)===0;let power=Math.max(1,e.attack-statusModifiers(s,'enemy').attack)+(heavy?(e.heavyBonus??2):0);if(e.weaken>0){e.weaken--;power=Math.max(1,power-2);}power=Math.max(1,power-effectiveStats(s).defense);
  const block=Math.min(b.playerShield,power);b.playerShield-=block;const damage=power-block;s.hp=Math.max(0,s.hp-damage);
  let text=`${heavy?'적의 강한 공격':e.weapon||'적의 짧은 칼'} — ${damage} 피해${block?`, 보호막이 ${block} 흡수`:''}.`;
  emit(s,heavy?'skill':'attack','enemy','player',heavy?'강한 내려찍기':e.weapon||'짧은 칼',damage,{blocked:block});if(block)emit(s,'block','player','player','보호막 흡수',block);
+ if(s.path==='outer'&&heavy&&damage>=3&&ensurePathState(s).casting){ensurePathState(s).casting=null;emit(s,'status','enemy','player','강타 · 주문 끊김');log(s,'enemy','강타에 흐름이 끊겨 준비한 주문이 무너졌다.');}
  if(heavy&&damage>0&&e.element){text+=' '+inflict(s,'player',e.element);}
- if(b.counter&&s.hp>0&&!bleedOnAttack(s,'player')){b.counter=false;const hit=strike(s,b.stats.attack+1,{accuracy:.12});emit(s,hit.miss?'dodge':'counter','player','enemy',b.counterElement?'결의 반격':'간파 반격',hit.damage||0);text+=hit.miss?' 반격은 빗나갔다.':` 반격으로 ${hit.damage} 피해.`;if(!hit.miss&&b.counterElement)text+=' '+elementEffect(s);b.counterElement=false;}log(s,'enemy',text);}
+ if(b.counter&&s.hp>0&&!bleedOnAttack(s,'player')){b.counter=false;const hit=strike(s,b.stats.attack+1+(b.counterPower||0),{accuracy:.12});emit(s,hit.miss?'dodge':'counter','player','enemy',b.counterElement?'결의 반격':'간파 반격',hit.damage||0);text+=hit.miss?' 반격은 빗나갔다.':` 반격으로 ${hit.damage} 피해.`;if(!hit.miss&&b.counterElement)text+=' '+elementEffect(s);b.counterElement=false;}log(s,'enemy',text);}
 export function tickBattle(state){
  const s=structuredClone(state);const b=s.battle;if(s.scene!=='battle'||!b||b.outcome)return s;
- ensureStatuses(b);b.effects=[];b.turn++;beginStatusTurn(s,b.actor);finish(s);if(b.outcome)return s;const acting=b.actor;if(b.actor==='player'){playerTurn(s);if(b.enemy.counterReady&&!statusModifiers(s,'enemy').skillLocked&&b.enemy.hp>0&&s.hp>0&&b.effects.some(e=>e.actor==='player'&&['attack','skill'].includes(e.kind))){b.enemy.counterReady=false;const power=Math.max(1,b.enemy.attack-1-statusModifiers(s,'enemy').attack-effectiveStats(s).defense),blocked=Math.min(power,b.playerShield);b.playerShield-=blocked;const damage=power-blocked;s.hp=Math.max(0,s.hp-damage);emit(s,'counter','enemy','player','우두머리의 역습',damage);if(blocked)emit(s,'block','player','player','보호막 흡수',blocked);log(s,'enemy',`우두머리의 역습 — ${damage} 피해${blocked?`, 보호막이 ${blocked} 흡수`:''}.`);}}else enemyTurn(s);decayStatuses(s,acting);finish(s);
+ ensureStatuses(b);ensurePathState(s);b.effects=[];b.turn++;beginStatusTurn(s,b.actor);finish(s);if(b.outcome)return s;const acting=b.actor;if(b.actor==='player'){playerTurn(s);if(b.enemy.counterReady&&!b.enemy.disrupted&&!statusModifiers(s,'enemy').skillLocked&&b.enemy.hp>0&&s.hp>0&&b.effects.some(e=>e.actor==='player'&&['attack','skill'].includes(e.kind))){b.enemy.counterReady=false;const power=Math.max(1,b.enemy.attack-1-statusModifiers(s,'enemy').attack-effectiveStats(s).defense),blocked=Math.min(power,b.playerShield);b.playerShield-=blocked;const damage=power-blocked;s.hp=Math.max(0,s.hp-damage);emit(s,'counter','enemy','player','우두머리의 역습',damage);if(blocked)emit(s,'block','player','player','보호막 흡수',blocked);log(s,'enemy',`우두머리의 역습 — ${damage} 피해${blocked?`, 보호막이 ${blocked} 흡수`:''}.`);}}else enemyTurn(s);decayStatuses(s,acting);if(acting==='enemy'&&b.enemy.disrupted)b.enemy.disrupted--;finish(s);
  if(!b.outcome){if(b.actor!==b.first)b.round++;b.actor=b.actor==='player'?'enemy':'player';finish(s);}
  return s;
 }
