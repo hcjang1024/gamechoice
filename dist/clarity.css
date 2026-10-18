@@ -1,4 +1,32 @@
 :root{--muted:#b2bcb3}
+.player-stats{margin:16px 0;padding:14px 12px;background:#21312a;border:1px solid #5a6d56;border-radius:6px}
+.stats-caption{font-size:12px;color:var(--gold);margin-bottom:8px}
+.player-stats dl{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px 8px;margin:0}
+.player-stats dl>div{display:flex;justify-content:space-between;gap:6px;align-items:center;min-width:0;padding:5px 6px;background:#17261e;border-radius:3px}
+.player-stats dt{font-size:12px;color:var(--muted)}.player-stats dd{font-size:16px;margin:0;color:var(--ink)}
+.sidebar .player-stats dl{grid-template-columns:repeat(2,minmax(0,1fr))}
+.battle-panel>.player-stats{margin:0;padding:12px 20px;border:0;border-radius:0;border-top:1px solid var(--line)}
+.battle-panel>.player-stats dl{grid-template-columns:repeat(6,minmax(0,1fr))}
+.status-badges{display:flex;gap:6px;flex-wrap:wrap;min-height:28px;margin-top:8px}
+.status-info{font-size:12px;max-width:100%;background:#382d28;border:1px solid #887458;border-radius:4px;padding:0 7px;color:#eed5a6}
+.status-info>summary{min-height:30px;font-size:12px;color:inherit;gap:6px}
+.status-info>summary:after{font-size:12px}.status-info>p{font-size:12px;margin:2px 0 8px;color:var(--ink);max-width:250px}
+.status-info[open]>summary{margin-bottom:0}.status-clear{font-size:11px;color:var(--muted)}
+.status-burn,.status-bleed{border-color:#ac7560}.status-shock{border-color:#9c8cb7}.status-poison{border-color:#7e9d73}
+.unknown-route{padding:24px 18px;gap:12px;align-items:center;text-align:center;min-height:200px}
+.unknown-route .route-kind-icon{font:32px var(--serif);color:var(--gold);height:48px}
+.unknown-route .route-option-copy{width:100%;padding:8px 0 0}.unknown-route h3{font-size:23px;margin:0 0 15px}
+.unknown-route .route-option-copy>small{display:none}
+.story[data-scene="growth"]>.scene-art{height:110px}
+@media(max-width:800px){
+ .sidebar .player-stats dl{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .player-stats{margin:12px 0 4px;padding:10px 12px}
+ .battle-panel>.player-stats dl{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .route-options .unknown-route{display:flex;flex-direction:row;min-height:100px;text-align:left;padding:18px 22px;gap:22px}
+ .unknown-route .route-kind-icon{width:40px;flex-shrink:0;display:grid;place-items:center}
+ .unknown-route .route-option-copy{padding:0}.unknown-route h3{margin-bottom:7px}
+ .duel-vitals{gap:18px;padding:5px 14px 10px}
+}
 .game-layout.in-battle{grid-template-columns:minmax(0,1fr);max-width:900px;margin:auto;width:100%}.in-battle .sidebar{display:none}.in-battle .story{max-width:none}
 .duel-vitals{display:grid;grid-template-columns:1fr 1fr;gap:30px;padding:4px 20px 12px;background:#18271f}
 .duel-vitals .stat-label{font-size:13px;color:var(--ink)}

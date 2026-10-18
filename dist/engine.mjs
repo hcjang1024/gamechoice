@@ -1,3 +1,5 @@
+import {ensureStatuses} from './statuses.mjs';
+import {enforceGrowth} from './progression.mjs';
 import {beginBattle,abilities,abilityCatalog,grantAbility} from './combat.mjs';
 import {startJourney,journeyScene,journeyChoose} from './journey.mjs';
 import {ensureWorkshop} from './workshop.mjs';
@@ -14,7 +16,7 @@ export function migrate(raw){
  if(!['hp','energy','control','insight','skill','training'].every(k=>Number.isFinite(s[k])&&s[k]>=0)||!Array.isArray(s.relations))throw new Error('유효하지 않은 능력치');
  if(raw.version<6){s.learnedSkills=['weapon',...(s.control>=2?['element']:[]),...(s.insight>=2?['counter']:[])];s.loadout=raw.loadout??s.learnedSkills.slice(0,2);const cp=s.journey?.route?.checkpoint;if(cp){cp.version=6;cp.learnedSkills=['weapon',...(cp.control>=2?['element']:[]),...(cp.insight>=2?['counter']:[])];cp.loadout??=cp.learnedSkills.slice(0,2);}}
  if(!Array.isArray(s.learnedSkills)||!s.learnedSkills.every(id=>['weapon','element','counter'].includes(id)))throw new Error('유효하지 않은 학습 기록');
- ensureWorkshop(s.journey);ensureRoute(s,raw.version<5);s.version=6;scene(s);return s;
+ ensureWorkshop(s.journey);ensureRoute(s,raw.version<5);if(s.battle)ensureStatuses(s.battle);s.version=6;enforceGrowth(s);scene(s);return s;
 }
 const remember=(s,event)=>{if(!s.relations.includes(event))s.relations.push(event);};
 export function relationshipEvents(s){const labels={'first-help':'첫날, 이솔의 짐을 함께 들었다.','shared-practice':'서로의 빈틈을 짚으며 합을 맞췄다.','held-line':'다리 앞에서 이솔의 뒤를 지켰다.','shared-rescue':'위험한 다리에서 함께 아이와 약초를 구했다.','child-rescue':'아이를 먼저 구하는 선택을 함께했다.','isol-injured':'아이를 맡긴 이솔이 팔을 다쳤다.'};return s.relations.map(id=>labels[id]).filter(Boolean);}
@@ -41,7 +43,8 @@ export function scene(s){
  default:throw new Error('알 수 없는 장면');
  }
 }
-export function choose(state,id){
+export function choose(state,id){return enforceGrowth(chooseAction(enforceGrowth(structuredClone(state)),id));}
+function chooseAction(state,id){
  const s=structuredClone(state);const current=scene(s);const c=current.choices.find(x=>x.id===id);if(!c||c.disabled)throw new Error('선택할 수 없습니다.');
  s.journal.push({scene:current.title,choice:c.title});s.last='';
  if(s.scene==='ending'&&id==='next-chapter')return startJourney(s);

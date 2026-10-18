@@ -36,7 +36,7 @@ export function chapterScene(s){const j=s.journey,r=j?.route;if(!r)return null;
  if(['hub','map'].includes(s.scene)){
   if(r.ended)return {chapter:5,title:r.ended==='victory'?'여정의 마지막에 남은 것':'이번 여정은 여기까지',text:[r.ended==='victory'?'제한된 여정 끝에서 전령을 구했다. 이 챕터의 전투와 방문은 모두 끝났다.':'고갯길의 보스를 넘지 못했다. 새 선택으로 다시 도전할 수 있지만, 이번 도전의 보상과 성장은 챕터 시작 상태로 되돌아간다.'],choices:[...(j.complete?[opt('read-letter','구해 낸 전령의 밀서를 읽는다','첫 번째 챕터의 결말')]:[]),opt('open-bag','현재 장비와 소지품을 확인한다','챕터 보상과 장비 확인'),opt('retry-chapter','챕터를 처음부터 다시 도전한다','시작 시점 복원 · 보상과 성장 누적 없음')]};
   if(r.used>=r.total)return {chapter:5,title:'마지막 길, 봉쇄대의 우두머리',text:['여섯 번의 갈림길을 모두 지났다. 이제 남은 것은 고갯길의 보스뿐이다.','장착과 이미 얻은 성장점 배분, 남은 소모품 사용은 가능하다. 새 전투나 상점, 휴식으로 돌아갈 수는 없다.'],choices:[opt('challenge-boss','이 준비로 마지막 보스에게 도전한다','챕터의 마지막 전투 · 패배하면 이번 도전 종료'),opt('open-bag','남은 소모품과 장비를 점검한다','여정 추가 소모 없음'),opt('open-growth','남은 성장점을 배분한다',`성장점 ${j.points} · 여정 추가 소모 없음`)]};
-  return {chapter:5,title:stops[r.used].name+' · 어디로 향할 것인가',text:[`전령을 찾아가는 길. 중간 선택은 ${r.total-r.used}번 남았다. 전투로 성장할지, 회복하거나 준비할지 고른 뒤에는 지나온 자리로 돌아갈 수 없다.`,`${r.used+1}번째 갈림길이다. 세 장소 중 하나를 고르면 여정 한 칸을 사용한다. 여섯 칸 뒤에는 반드시 우두머리와 마주한다.`],choices:[...optionsFor(s).map(o=>opt('node-'+o.id,o.name,o.hint+' · 여정 1칸',o.kind==='rest'&&s.hp===maxHp(s)&&s.energy===maxEnergy(s))),opt('open-bag','장착과 소모품을 확인한다','현재 소지품만 사용 · 여정 소모 없음'),opt('open-growth','이미 얻은 성장점을 배분한다',`성장점 ${j.points} · 여정 소모 없음`)]};
+  return {chapter:5,title:stops[r.used].name+' · 어디로 향할 것인가',text:[`전령을 찾아가는 길. 중간 선택은 ${r.total-r.used}번 남았다. 전투로 성장할지, 회복하거나 준비할지 고른 뒤에는 지나온 자리로 돌아갈 수 없다.`,`${r.used+1}번째 갈림길이다. 세 장소 중 하나를 고르면 여정 한 칸을 사용한다. 여섯 칸 뒤에는 반드시 우두머리와 마주한다.`],choices:[...optionsFor(s).map(o=>opt('node-'+o.id,kindLabels[o.kind],'',o.kind==='rest'&&s.hp===maxHp(s)&&s.energy===maxEnergy(s))),opt('open-bag','장착과 소모품을 확인한다','현재 소지품만 사용 · 여정 소모 없음'),opt('open-growth','이미 얻은 성장점을 배분한다',`성장점 ${j.points} · 여정 소모 없음`)]};
  }
  if(s.scene==='chapter-failed')return {chapter:5,title:'고갯길을 넘지 못한 날',text:['준비한 힘은 여기까지였다. 봉쇄대의 우두머리는 여전히 길을 지키고 있다.','같은 성장 상태로 전투와 휴식을 반복할 수는 없다. 다시 도전하면 이 챕터를 시작했을 때의 능력과 소지품으로 돌아가 여섯 갈림길을 새로 고르게 된다.'],choices:[opt('retry-chapter','이번 선택을 돌아보고 다시 도전한다','챕터 시작 상태 복원 · 이번 보상과 성장 초기화')]};
  if(s.scene==='chapter-event'){const event=r.current?.event;
@@ -56,7 +56,7 @@ export function chapterChoose(s,id){const j=s.journey,r=j.route;
   if(id==='event-lift'){s.hp-=2;j.gold+=8;j.ore++;}if(id==='event-supply'){j.herbs++;s.energy=Math.min(maxEnergy(s),s.energy+2);}if(id==='event-observe')s.insight++;
   if(id==='event-breathe'){s.energy-=2;s.control++;}if(id==='event-salvage'){s.hp-=2;j.ore+=2;j.gold+=4;}if(id==='event-heal')s.hp=Math.min(maxHp(s),s.hp+4);
   if(id==='event-intel'&&!r.intel.includes('read-pattern'))r.intel.push('read-pattern');if(id==='event-training'){s.skill++;awardExperience(s,2);}if(id==='event-cache'){j.herbs++;j.inventory.breath=(j.inventory.breath||0)+1;}
-  s.last='한 번의 만남을 마치고 다음 갈림길로 나아간다.';finishVisit(s);return s;
+  s.last={ 'event-lift':'짐을 옮기고 품삯을 받았다. · 체력 -2, 엽전 +8, 강화석 +1','event-supply':'남는 물자를 나누어 받았다. · 약초 +1, 숨 +2','event-observe':'습격의 흔적에서 새로운 움직임을 읽었다. · 통찰 +1','event-breathe':'수련의 흔적을 몸에 새겼다. · 숨 -2, 제어 +1','event-salvage':'바위틈에서 재료를 꺼냈다. · 체력 -2, 강화석 +2, 엽전 +4','event-heal':'샘물로 상처를 돌보았다. · 체력 +4','event-intel':'정찰자의 요령을 익혔다. · 보스 강타의 추가 위력 -1','event-training':'정찰자의 발디딤을 익혔다. · 숙련 +1, 경험 +2','event-cache':'정찰자가 남긴 보급품을 받았다. · 약초 +1, 청숨환 +1'}[id];finishVisit(s);return s;
  }
  throw new Error('알 수 없는 챕터 행동');
 }

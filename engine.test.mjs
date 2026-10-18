@@ -43,7 +43,7 @@ test('결의 효과가 실제 상태와 자원을 바꾼다',()=>{
   assert.equal(next.energy,s.energy-2);assert.ok(next.battle.enemy.hp<s.battle.enemy.hp);
   if(elements[i]==='물')assert.ok(next.battle.playerShield>s.battle.playerShield);
   if(elements[i]==='흙')assert.equal(next.battle.playerShield,s.battle.playerShield+2);
-  if(elements[i]==='불')assert.equal(next.battle.enemy.burn,2);
+  if(elements[i]==='불')assert.equal(next.battle.statuses.enemy.burn.turns,2);
   if(elements[i]==='나무')assert.equal(next.hp,8);
  }
 });
