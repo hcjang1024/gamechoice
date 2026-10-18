@@ -1,15 +1,16 @@
 import {beginBattle} from './combat.mjs';
+import {startJourney,journeyScene,journeyChoose} from './journey.mjs';
 export const weapons=['맨손','검','도','창','활','지팡이'];
 export const elements=['물','불','흙','바람','나무','쇠','번개'];
-export function initial(name){return {version:2,name,scene:'arrival',path:null,trial:null,element:null,weapon:null,hp:10,energy:6,control:0,insight:0,skill:0,training:0,relations:[],loadout:null,battle:null,flags:[],journal:[],last:'',ending:null};}
+export function initial(name){return {version:3,name,scene:'arrival',path:null,trial:null,element:null,weapon:null,hp:10,energy:6,control:0,insight:0,skill:0,training:0,relations:[],loadout:null,battle:null,journey:null,flags:[],journal:[],last:'',ending:null};}
 export function migrate(raw){
- if(!raw||![1,2].includes(raw.version)||typeof raw.name!=='string'||!Array.isArray(raw.journal)||!Array.isArray(raw.flags))throw new Error('유효하지 않은 저장');
+ if(!raw||![1,2,3].includes(raw.version)||typeof raw.name!=='string'||!Array.isArray(raw.journal)||!Array.isArray(raw.flags))throw new Error('유효하지 않은 저장');
  const s={...initial(raw.name),...structuredClone(raw)};
  if(s.version===1){const choices=s.journal.map(j=>j.choice);s.relations=[];if(choices.some(c=>c.includes('짐을 든')))s.relations.push('first-help');if(choices.some(c=>c.includes('서로의 빈틈')))s.relations.push('shared-practice');if(s.ending==='together')s.relations.push('shared-rescue');if(s.flags.includes('isol-injured'))s.relations.push('isol-injured');if(s.flags.includes('art-trust'))s.flags.push('art-insight');delete s.trust;s.version=2;s.last='이전 여정을 불러왔습니다. 동료 관계는 사건 기록으로 분리되었고 전투는 자동 전투로 진행됩니다.';}
  if(s.path&&!['inner','outer'].includes(s.path))throw new Error('유효하지 않은 길');
  if(s.weapon&&!weapons.includes(s.weapon)||s.element&&!elements.includes(s.element))throw new Error('유효하지 않은 장비');
  if(!['hp','energy','control','insight','skill','training'].every(k=>Number.isFinite(s[k])&&s[k]>=0)||!Array.isArray(s.relations))throw new Error('유효하지 않은 능력치');
- scene(s);return s;
+ s.version=3;scene(s);return s;
 }
 const remember=(s,event)=>{if(!s.relations.includes(event))s.relations.push(event);};
 export function relationshipEvents(s){const labels={'first-help':'첫날, 이솔의 짐을 함께 들었다.','shared-practice':'서로의 빈틈을 짚으며 합을 맞췄다.','held-line':'다리 앞에서 이솔의 뒤를 지켰다.','shared-rescue':'위험한 다리에서 함께 아이와 약초를 구했다.','child-rescue':'아이를 먼저 구하는 선택을 함께했다.','isol-injured':'아이를 맡긴 이솔이 팔을 다쳤다.'};return s.relations.map(id=>labels[id]).filter(Boolean);}
@@ -17,6 +18,7 @@ const option=(id,title,hint='')=>({id,title,hint});
 const pathName=s=>s.path==='inner'?'쌓는 길':s.path==='outer'?'끌어 쓰는 길':'아직 열지 않은 길';
 export {pathName};
 export function scene(s){
+ const continuation=journeyScene(s);if(continuation)return continuation;
  const inner=s.path==='inner';
  switch(s.scene){
  case 'arrival':return {chapter:1,title:'아직 쓰이지 않은 이름',text:[`운양의 산길 끝, 오래된 돌문에 「모든 길은 첫 숨에서 시작된다」는 문장이 새겨져 있었다. 당신은 여행 보따리를 고쳐 메고 그 아래를 지났다.`,`이곳은 여러 문파와 학파가 초심자를 가르치는 공동 수련처, 여울원. 검을 찬 제자 옆에서 누군가는 아무 무기도 없이 허공의 물방울을 움직였다.`,`접수대의 노인이 빈 명부 위에 당신의 이름, ‘${s.name}’을 적었다.`],quote:'“어디서 왔느냐보다, 여기서 무엇을 하느냐가 중요하지.”',choices:[option('observe','마당의 수련을 유심히 살핀다','관찰로 시작한다 · 통찰 +1'),option('help','무거운 짐을 든 제자를 돕는다','이솔과의 첫 만남이 관계 기록에 남는다')]};
@@ -30,13 +32,15 @@ export function scene(s){
  case 'battle':return {chapter:3,title:s.battle.outcome?{victory:'첫 실전의 승리',defeat:'끝까지 버틴 자리',retreat:'물러설 때를 아는 것'}[s.battle.outcome]:'다리 위의 자동 전투',text:[],choices:s.battle.outcome?[option('continue','전투를 마치고 다리로 향한다',s.battle.outcome==='defeat'?'이솔의 응급 처치로 체력 1을 회복해 여정을 이어갑니다':'남은 체력과 숨으로 다음 위기를 맞이합니다')]:[]};
  case 'bridge':return {chapter:3,title:'끊어지기 직전의 것',text:[s.flags.includes('won')?'얼굴을 가린 자는 무기를 놓고 숲으로 달아났다. 첫 실전은 끝났지만,밧줄이 찢어지는 소리가 뒤따랐다.':'이솔이 당신을 안전한 곳으로 끌어냈다. 적도 무너지는 다리를 피해 물러났다. 오래 쉴 시간은 없었다.','약초 꾸러미가 다리 난간에 걸려 있었다. 그 아래, 아이가 매달린 나무판이 점점 기울었다.','모든 것을 붙들려면 남은 힘으로 흐름을 정확히 읽거나, 함께 수련했던 경험을 살려 이솔과 역할을 나눠야 한다.'],choices:[option('child','아이부터 안전한 곳으로 끌어 올린다','사람을 우선한다 · 약초 일부를 잃는다'),{...option('both',inner?'숨을 다리에 싣고 이솔과 밧줄을 당긴다':'다리 아래의 숨을 이끌어 이솔을 돕는다',s.relations.includes('shared-practice')?'함께 수련한 경험으로 역할을 나눈다 · 숨 소모 1':'제어 + 통찰 3 이상 필요 · 숨 소모 1'),disabled:s.energy<1||(!s.relations.includes('shared-practice')&&s.control+s.insight<3)},option('herbs','꾸러미를 건네고 이솔에게 아이를 맡긴다','마을의 약을 지킨다 · 이솔의 부담과 부상')]};
  case 'night':return {chapter:4,title:'돌아오는 길의 침묵',text:[s.ending==='together'?'마을에 아이와 약초가 함께 도착했다. 이솔은 힘이 풀린 손으로 물그릇을 쥐고 웃었다.':s.ending==='child'?'아이는 무사히 가족에게 돌아갔다. 약초는 절반밖에 남지 않았지만, 마을 사람들은 당신에게 따뜻한 밥을 내주었다.':'약초 꾸러미는 무사했다. 아이도 살아 돌아왔지만, 이솔은 다친 팔을 감춘 채 말이 없었다.','수련처로 돌아오는 길, 낮에 쓴 힘의 감각이 되살아났다. 잘한 일과 놓친 일이 함께 떠올랐다.','스승은 결과를 듣고도 바로 평가하지 않았다. 대신 질문 하나를 건넸다.'],quote:'“오늘의 너에게, 내일의 너는 무엇을 더해 주고 싶으냐?”',choices:[option('resolve-control','위태로운 순간에도 흔들리지 않는 호흡','제어 +1 · 제어를 바탕으로 첫 기술 완성'),option('resolve-skill','망설임을 끝낼 수 있는 한 번의 동작','숙련 +1 · 무기를 바탕으로 첫 기술 완성'),option('resolve-insight','힘을 쓰기 전에 위험을 알아보는 눈','통찰 +1 · 관찰을 바탕으로 첫 기술 완성')]};
- case 'ending':return {chapter:4,title:'이제, 당신의 길이 시작된다',text:[`명부에 이름을 적던 날, 당신은 길이 없는 제자였다. 이제 ${s.name}에게는 ${pathName(s)}과 ${s.element}의 결, 그리고 스스로 얻은 첫 기술이 있다.`,s.ending==='together'?'힘을 나누는 선택이 두 가지를 함께 지켰다. 이솔은 다음 심부름도 당신과 가겠다고 했다.':s.ending==='child'?'당신은 손에 쥔 물건보다 사람을 먼저 붙들었다. 마을의 아이는 당신의 이름을 오래 기억할 것이다.':'당신은 많은 이에게 필요한 약을 지켰다. 다친 이솔과 나눠야 할 이야기는 아직 남아 있다.','산 너머 청운문에서 낯선 자들이 승천지를 묻고 다닌다는 소문이 들려왔다. 여울원에서의 작은 시작은, 곧 한뉘의 더 큰 흐름과 만날 것이다.'],choices:[]};
+ case 'ending':return {chapter:4,title:'이제, 당신의 길이 시작된다',text:[`명부에 이름을 적던 날, 당신은 길이 없는 제자였다. 이제 ${s.name}에게는 ${pathName(s)}과 ${s.element}의 결, 그리고 스스로 얻은 첫 기술이 있다.`,s.ending==='together'?'힘을 나누는 선택이 두 가지를 함께 지켰다. 이솔은 다음 심부름도 당신과 가겠다고 했다.':s.ending==='child'?'당신은 손에 쥔 물건보다 사람을 먼저 붙들었다. 마을의 아이는 당신의 이름을 오래 기억할 것이다.':'당신은 많은 이에게 필요한 약을 지켰다. 다친 이솔과 나눠야 할 이야기는 아직 남아 있다.','산 너머 청운문에서 낯선 자들이 승천지를 묻고 다닌다는 소문이 들려왔다. 여울원에서의 작은 시작은, 곧 한뉘의 더 큰 흐름과 만날 것이다.'],choices:[option('next-chapter','다음 이야기로 나아간다','첫 번째 의뢰 · 탐험과 성장 시작')]};
  default:throw new Error('알 수 없는 장면');
  }
 }
 export function choose(state,id){
  const s=structuredClone(state);const current=scene(s);const c=current.choices.find(x=>x.id===id);if(!c||c.disabled)throw new Error('선택할 수 없습니다.');
  s.journal.push({scene:current.title,choice:c.title});s.last='';
+ if(s.scene==='ending'&&id==='next-chapter')return startJourney(s);
+ if(s.journey&&journeyScene(s))return journeyChoose(s,id);
  switch(s.scene){
  case 'arrival':if(id==='observe'){s.insight++;s.last='수련자마다 숨의 흐름이 다르다는 것을 알아차렸다. · 통찰 +1';}else{remember(s,'first-help');s.last='이솔이 당신의 이름을 기억했다. · 관계에 첫 만남 기록';}s.scene='spring';break;
  case 'spring':s.trial=id==='try-inner'?'inner':'outer';s.scene='commit';break;
