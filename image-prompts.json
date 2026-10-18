@@ -1,0 +1,17 @@
+{
+  "mode": "built-in image_gen",
+  "assets": [
+    {
+      "file": "dist/assets/courtyard.png",
+      "prompt": "Use case: illustration-story. Asset type: wide environmental scene illustration for a literary text RPG, landscape 3:2 composition. A mountain training academy in the Korean-inspired fantasy world Han Nui. Wide establishing view of a stone gateway, tiled-roof wooden pavilions, a stone training courtyard, pines and misty mountains at dawn. A few tiny distant apprentice silhouettes, nobody identifiable, no foreground hero. Quiet beginning of a journey. Style: refined hand-painted East Asian fantasy concept art, textured gouache and ink, cinematic atmospheric depth, muted dark jade and teal with warm pale gold highlights, detailed natural materials. Image fills entire canvas. No UI, typography, borders, logos, panels, watermark, no modern objects. Readable landscape composition suitable for a wide banner crop."
+    },
+    {
+      "file": "dist/assets/spring.png",
+      "prompt": "Use case: illustration-story. Asset type: wide environmental scene illustration for a literary text RPG, landscape 3:2 composition. A secluded mountain spring in the Korean-inspired fantasy world Han Nui. Wide view of a clear shallow pool, moss-covered rocks, soft magical currents of breath visible as subtle pale jade wisps over water, one floating leaf, pines and bamboo around it at blue dawn. No identifiable people, no weapons. A sense of discovering a power. Style: refined hand-painted East Asian fantasy concept art, textured gouache and ink, cinematic atmospheric depth, muted dark jade and teal with warm pale gold highlights, detailed natural materials. Image fills entire canvas. No UI, typography, borders, logos, panels, watermark, no modern objects. Readable landscape composition suitable for a wide banner crop."
+    },
+    {
+      "file": "dist/assets/bridge.png",
+      "prompt": "Use case: illustration-story. Asset type: wide environmental scene illustration for a literary text RPG, landscape 3:2 composition. A dangerous mountain crossing in the Korean-inspired fantasy world Han Nui. Wide view of an old narrow rope-and-plank bridge over a rocky rushing stream in a pine forest at dusk, one slack rope and broken planks near the middle, a distant hooded highway robber silhouette waiting at the far end. No identifiable player character, no battle wounds, no text. Tension before combat. Style: refined hand-painted East Asian fantasy concept art, textured gouache and ink, cinematic atmospheric depth, muted dark jade and teal with warm pale gold highlights, detailed natural materials. Image fills entire canvas. No UI, typography, borders, logos, panels, watermark, no modern objects. Readable landscape composition suitable for a wide banner crop."
+    }
+  ]
+}
