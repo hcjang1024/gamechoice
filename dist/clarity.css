@@ -1,4 +1,11 @@
 :root{--muted:#b2bcb3}
+.duel-vitals .stat-label{align-items:flex-start;gap:6px}
+.duel-vitals .stat-label>span:first-child{min-width:0;overflow-wrap:anywhere}
+.duel-vitals .stat-label>span:last-child{white-space:nowrap;flex-shrink:0}
+.enemy-ward,.enemy-casting{display:inline-block;font-size:12px;padding:4px 8px;border:1px solid #a99677;background:#352f24;color:#e7d4ab;border-radius:4px;margin:6px 5px 0 0}
+.enemy-casting{border-color:#779bb1;background:#223544;color:#c8e4f2}
+.enemy-casting-ring{position:absolute;z-index:3;right:10%;bottom:20%;width:140px;height:70px;border:3px double #a5d6f0;border-radius:50%;box-shadow:0 0 26px #87b9df;pointer-events:none}
+@media(max-width:800px){.enemy-casting-ring{width:90px;height:45px;right:5%}}
 .maintained-field,.casting-ring{z-index:3}
 .exchange-summary span{font-size:12px}
 .kind-status .damage-float,.kind-cast .damage-float{font-size:16px}

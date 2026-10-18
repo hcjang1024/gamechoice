@@ -20,7 +20,7 @@ export function migrate(raw){
  ensureWorkshop(s.journey);ensureRoute(s,raw.version<5);if(s.battle){ensureStatuses(s.battle);ensurePathState(s);}s.version=6;enforceGrowth(s);scene(s);return s;
 }
 const remember=(s,event)=>{if(!s.relations.includes(event))s.relations.push(event);};
-export function relationshipEvents(s){const labels={'first-help':'첫날, 이솔의 짐을 함께 들었다.','shared-practice':'서로의 빈틈을 짚으며 합을 맞췄다.','held-line':'다리 앞에서 이솔의 뒤를 지켰다.','shared-rescue':'위험한 다리에서 함께 아이와 약초를 구했다.','child-rescue':'아이를 먼저 구하는 선택을 함께했다.','isol-injured':'아이를 맡긴 이솔이 팔을 다쳤다.'};return s.relations.map(id=>labels[id]).filter(Boolean);}
+export function relationshipEvents(s){const labels={'first-help':'첫날, 이솔의 짐을 함께 들었다.','shared-practice':'서로의 빈틈을 짚으며 합을 맞췄다.','held-line':'다리 앞에서 이솔의 뒤를 지켰다.','shared-rescue':'위험한 다리에서 함께 아이와 약초를 구했다.','child-rescue':'아이를 먼저 구하는 선택을 함께했다.','isol-injured':'아이를 맡긴 이솔이 팔을 다쳤다.','shared-watch':'청운문 아래에서 이솔과 밤 경계를 나누었다.'};return s.relations.map(id=>labels[id]).filter(Boolean);}
 const option=(id,title,hint='')=>({id,title,hint});
 const pathName=s=>s.path==='inner'?'쌓는 길':s.path==='outer'?'끌어 쓰는 길':'아직 열지 않은 길';
 export {pathName};
