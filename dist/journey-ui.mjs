@@ -1,12 +1,11 @@
-import {zones,xpNeeded} from './journey.mjs';
-import {maxHp,maxEnergy} from './combat.mjs';
+import {xpNeeded} from './journey.mjs';
+import {maxHp} from './combat.mjs';
+import {chapterProgress,routeCards} from './chapter-ui.mjs';
 export function journeyPanel(s){const j=s.journey;if(!j)return '';
  const resources=`<div class="supplies"><span>실전 등급 <b>${j.level}</b></span><span>경험 <b>${j.xp} / ${xpNeeded(j)}</b></span><span>성장점 <b>${j.points}</b></span><span>엽전 <b>${j.gold}</b></span><span>강화석 <b>${j.ore}</b></span><span>약초 <b>${j.herbs}</b></span></div>`;
- let content='';
- if(s.scene==='hub')content=`<section class="quest-card"><p class="eyebrow">CHAPTER 01 · 사라진 전령</p><h3>${j.complete?'경고를 전한 제자':'산길의 흔적을 따라 전령을 찾아라'}</h3><div class="quest-steps">${zones.map((z,i)=>`<div class="${j.cleared.includes(z.id)?'complete':''}"><span>${j.cleared.includes(z.id)?'✓':'0'+(i+1)}</span><p>${z.name}<small>${j.cleared.includes(z.id)?'단서 확보':i&&!j.cleared.includes(zones[i-1].id)?'앞선 단서 필요':'탐험 가능'}</small></p></div>`).join('')}</div><p class="muted">체력 ${s.hp}/${maxHp(s)} · 숨 ${s.energy}/${maxEnergy(s)} · ${s.hp<maxHp(s)||s.energy<maxEnergy(s)?'출발 전 샘가에서 쉬면 모두 회복됩니다.':'출발할 준비가 되었습니다.'}</p></section>`;
- if(s.scene==='map')content=`<div class="region-grid">${zones.map((z,i)=>{const locked=i>0&&!j.cleared.includes(zones[i-1].id);return `<button class="region-card" data-choice="explore-${z.id}" ${locked?'disabled':''}><img src="assets/${z.image}.png" alt="" loading="lazy"><div><p class="eyebrow">${locked?'LOCKED':j.cleared.includes(z.id)?'REVISIT':'EXPLORE'} · ${z.danger}</p><h3>${z.name}</h3><p>${z.description}</p><span>실전 경험 ${z.reward.xp} · 엽전 ${z.reward.gold} · 강화석 ${z.reward.ore}</span><strong>${locked?'이전 지역의 단서를 먼저 찾으세요':j.cleared.includes(z.id)?'다시 탐험하기 →':'새로운 흔적 찾기 →'}</strong></div></button>`;}).join('')}</div>`;
- if(s.scene==='reward'){const r=j.reward;content=`<section class="reward-card"><p class="eyebrow">${r.outcome==='victory'?'EXPEDITION REWARDS':'RETURN TO ACADEMY'}</p><h3>${r.outcome==='victory'?(r.first?'첫 탐험 성공':'재탐험 성공'):'무사히 돌아온 것이 보상이다'}</h3><div class="reward-items"><span>경험 <b>+${r.xp}</b></span><span>엽전 <b>+${r.gold}</b></span><span>강화석 <b>+${r.ore}</b></span>${r.first?'<span>약초 <b>+1</b></span>':''}</div>${r.levels?`<p class="level-up">실전 등급 ${j.level} 달성 · 성장점 +${r.levels} · 최대 체력 ${maxHp(s)}</p>`:''}</section>`;}
+ let content=routeCards(s);
+ if(s.scene==='reward'){const r=j.reward;content=`<section class="reward-card"><p class="eyebrow">${r.outcome==='victory'?'ENCOUNTER REWARDS':'LOST OPPORTUNITY'}</p><h3>${r.outcome==='victory'?'싸움에서 얻은 보상':'이번 전투의 보상은 없다'}</h3><div class="reward-items"><span>경험 <b>+${r.xp}</b></span><span>엽전 <b>+${r.gold}</b></span><span>강화석 <b>+${r.ore}</b></span>${r.first?'<span>약초 <b>+1</b></span>':''}</div>${r.levels?`<p class="level-up">실전 등급 ${j.level} · 성장점 +${r.levels} · 최대 체력 ${maxHp(s)}</p>`:''}</section>`;}
  if(s.scene==='forge')content=`<div class="gear-summary"><div><small>${s.weapon==='맨손'?'권갑':s.weapon} / 매개 보강</small><strong>+${j.gear}</strong><p>추가 전투 위력 ${j.gear}</p></div><div><small>방호구 보강</small><strong>+${j.armor}</strong><p>추가 방어 ${j.armor}</p></div></div>`;
- if(s.scene==='growth')content=`<div class="growth-summary"><p class="eyebrow">다음 선택을 더 강하게</p><p>능력 성장과 기술 강화에 같은 성장점을 사용합니다. 자주 쓰는 기술에 집중할지, 새로운 기술을 열 능력을 기를지 결정하세요.</p><span>남은 성장점 <b>${j.points}</b></span></div>`;
- return resources+content;
+ if(s.scene==='growth')content=`<div class="growth-summary"><p class="eyebrow">지나온 선택으로 얻은 힘</p><p>획득한 성장점만 배분합니다. 새 점수를 얻거나 휴식하려면 남은 여정에서 기회를 골라야 합니다.</p><span>남은 성장점 <b>${j.points}</b></span></div>`;
+ return resources+chapterProgress(s)+content;
 }

@@ -23,7 +23,7 @@ export function abilities(s){
 }
 export function combatStats(s){const p=weaponProfiles[s.weapon],gear=equipmentBonus(s),buff=s.journey?.prepBuffs||{};return {attack:(s.path==='inner'?2+Math.floor(s.skill/2):1+Math.floor(s.control/2))+p.attack+(s.journey?.gear||0)+Math.floor((s.journey?.level||1)/2)+gear.attack+(buff.attack||0),defense:p.guard+Math.floor(s.control/3)+(s.journey?.armor||0)+gear.defense,speed:p.speed+Math.floor(s.insight/2)+(s.element==='바람'?2:0)+gear.speed+(buff.speed||0),accuracy:Math.min(.99,.83+s.skill*.025+s.insight*.02+gear.accuracy),evasion:Math.min(.5,s.insight*.025+(s.element==='바람'?.12:0)+gear.evasion),range:p.range};}
 function random(b){let x=b.seed;x^=x<<13;x^=x>>>17;x^=x<<5;b.seed=x>>>0;return b.seed/4294967296;}
-function seedFor(s){let n=2166136261;for(const c of `${s.name}|${s.path}|${s.element}|${s.weapon}|${s.journal.length}`)n=Math.imul(n^c.charCodeAt(0),16777619);return n>>>0||1;}
+function seedFor(s){let n=2166136261;const encounter=s.journey?.route?.current?.step??s.journal.length;for(const c of `${s.name}|${s.path}|${s.element}|${s.weapon}|${encounter}`)n=Math.imul(n^c.charCodeAt(0),16777619);return n>>>0||1;}
 export function beginBattle(state,config={}){
  const s=structuredClone(state);const stats=combatStats(s);const ids=abilities(s).map(a=>a.id);
  s.loadout=(s.loadout?.filter(id=>ids.includes(id))??ids).slice(0,2);

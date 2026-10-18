@@ -57,7 +57,7 @@ test('패배해도 결과 확인 전에는 진행할 수 없고, 처치 후 서�
 });
 test('이전 버전 저장은 이름과 진행을 보존하고 숫자 관계를 사건으로 변환한다',()=>{
  const legacy={...prepared(),version:1,trust:3};delete legacy.relations;legacy.journal.push({scene:'수련',choice:'이솔과 서로의 빈틈을 짚어 준다'});
- const next=migrate(legacy);assert.equal(next.version,4);assert.equal(next.name,legacy.name);assert.equal(next.scene,legacy.scene);assert.ok(!('trust' in next));assert.ok(next.relations.includes('shared-practice'));assert.throws(()=>migrate({...next,weapon:'없는 무기'}));
+ const next=migrate(legacy);assert.equal(next.version,5);assert.equal(next.name,legacy.name);assert.equal(next.scene,legacy.scene);assert.ok(!('trust' in next));assert.ok(next.relations.includes('shared-practice'));assert.throws(()=>migrate({...next,weapon:'없는 무기'}));
 });
 test('수련·접근·기술 구성 조합에서 전투는 끝나고 자원이 범위를 벗어나지 않는다',()=>{
  const options=['control','skill','insight','partner'];let completed=0;

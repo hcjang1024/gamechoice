@@ -1,53 +1,29 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {initial,choose,scene,migrate} from './dist/engine.mjs';
-import {startJourney,zones,xpNeeded} from './dist/journey.mjs';
-import {abilities,combatStats,fastForward,tickBattle,maxHp,maxEnergy} from './dist/combat.mjs';
-function hero(path='inner',weapon=1,element=0){let s=initial('여울');for(const id of ['observe','try-'+path,'commit','element-'+element,'weapon-'+weapon,'control','skill','partner','guard','start-battle'])s=choose(s,id);s=fastForward(s);for(const id of ['continue','child','resolve-control','next-chapter'])s=choose(s,id);return s;}
-function fight(s,zone='trail'){s=choose(s,'open-map');s=choose(s,'explore-'+zone);s=choose(s,'start-battle');return fastForward(s);}
-function strong(s){s.journey.level=4;s.journey.gear=3;s.journey.armor=2;s.control+=3;s.skill+=3;s.insight+=2;s.hp=maxHp(s);s.energy=maxEnergy(s);s.loadout=['signature','weapon'];return s;}
-test('서장 완료 저장에서 이름·길·무기·깨달음을 보존하고 탐험에 진입한다',()=>{
- const s=hero();assert.equal(s.scene,'hub');assert.equal(s.name,'여울');assert.equal(s.path,'inner');assert.equal(s.weapon,'검');assert.ok(abilities(s).some(a=>a.id==='signature'));assert.equal(s.journey.points,1);assert.equal(s.hp,maxHp(s));
- const old={...structuredClone(s),version:2,scene:'ending'};delete old.journey;const restored=migrate(old);const next=choose(restored,'next-chapter');assert.equal(next.scene,'hub');assert.equal(next.journey.gold,8);
-});
-test('새 지역은 앞선 승리의 단서가 있어야 열리고 엔진도 잠금을 강제한다',()=>{
- let s=choose(hero(),'open-map');assert.equal(scene(s).choices.find(c=>c.id==='explore-pass').disabled,true);assert.throws(()=>choose(s,'explore-pass'));
- s=strong(choose(s,'to-hub'));s=fight(s);assert.equal(s.battle.enemy.name,zones[0].enemy.name);assert.equal(s.battle.outcome,'victory');s=choose(s,'continue');assert.ok(s.journey.cleared.includes('trail'));
- s=choose(choose(s,'to-hub'),'open-map');assert.equal(scene(s).choices.find(c=>c.id==='explore-waterway').disabled,false);
-});
-test('승리 보상은 한 번만 정산되고 재탐험에서도 중복 단서 보상은 없다',()=>{
- let s=fight(strong(hero()));const before={gold:s.journey.gold,ore:s.journey.ore,herbs:s.journey.herbs};s=choose(s,'continue');
- assert.equal(s.journey.gold,before.gold+5);assert.equal(s.journey.ore,before.ore+1);assert.equal(s.journey.herbs,before.herbs+1);assert.throws(()=>choose(s,'continue'));
- s=choose(s,'to-hub');s.hp=maxHp(s);s.energy=maxEnergy(s);s=choose(fight(s),'continue');assert.equal(s.journey.reward.first,false);assert.equal(s.journey.herbs,before.herbs+1);assert.equal(s.journey.history.length,2);
-});
-test('등급 상승은 경험을 소모하고 최대 자원과 배분 가능한 성장점을 늘린다',()=>{
- let s=strong(hero());s.journey.level=1;s.journey.xp=xpNeeded(s.journey)-1;const points=s.journey.points;s=choose(fight(s),'continue');
- assert.equal(s.journey.level,2);assert.equal(s.journey.points,points+1);assert.equal(maxHp(s),12);assert.equal(s.journey.xp,3);
- s=choose(choose(s,'to-hub'),'rest');assert.equal(s.hp,12);assert.equal(s.energy,maxEnergy(s));
-});
-test('성장점과 장비 보강의 지출이 능력과 실제 전투에 반영된다',()=>{
- let s=choose(hero(),'open-growth');const skill=s.skill;s=choose(s,'grow-skill');assert.equal(s.skill,skill+1);assert.equal(s.journey.points,0);assert.throws(()=>choose(s,'grow-skill'));
- s=choose(choose(s,'to-hub'),'open-forge');const power=combatStats(s).attack;s=choose(s,'upgrade-gear');assert.equal(combatStats(s).attack,power+1);assert.equal(s.journey.gold,2);assert.equal(s.journey.ore,1);assert.throws(()=>choose(s,'upgrade-armor'));
-});
-test('기술 강화는 실제 같은 타격의 피해를 높이고 소비 자원은 유지한다',()=>{
- let s=hero();s.loadout=['weapon'];s=choose(choose(choose(s,'open-map'),'explore-trail'),'start-battle');s.battle.actor='player';s.battle.seed=1;
- const before=tickBattle(s);const upgraded=structuredClone(s);upgraded.journey.skillRanks.weapon=2;const after=tickBattle(upgraded);
- assert.ok(after.battle.enemy.hp<before.battle.enemy.hp);assert.equal(after.energy,before.energy);
-});
-test('패배하면 무보상으로 복귀하고 무료 휴식과 재도전이 가능하다',()=>{
- let s=choose(choose(choose(hero(),'open-map'),'explore-trail'),'start-battle');s.hp=0;s=fastForward(s);s=choose(s,'continue');assert.equal(s.journey.reward.outcome,'defeat');assert.equal(s.journey.reward.gold,0);assert.ok(s.hp>=1);
- s=choose(choose(s,'to-hub'),'rest');assert.equal(s.hp,maxHp(s));assert.equal(s.energy,maxEnergy(s));s=choose(choose(s,'open-map'),'explore-trail');assert.equal(s.scene,'combat');
-});
-test('전투 준비 중에만 약초를 쓸 수 있고 개수와 체력을 제한한다',()=>{
- let s=choose(choose(hero(),'open-map'),'explore-trail');assert.throws(()=>choose(s,'use-herb'));s.hp=2;const herbs=s.journey.herbs;s=choose(s,'use-herb');assert.equal(s.hp,8);assert.equal(s.journey.herbs,herbs-1);s.journey.herbs=0;assert.throws(()=>choose(s,'use-herb'));
-});
-test('새 적도 재생·빠른 진행·중간 저장 복원 결과가 같다',()=>{
- let s=strong(hero());s.journey.cleared=['trail'];s=choose(choose(choose(s,'open-map'),'explore-waterway'),'start-battle');const mid=tickBattle(s);assert.deepEqual(fastForward(mid),fastForward(migrate(JSON.parse(JSON.stringify(mid)))));
-});
-test('84가지 캐릭터 조합이 장비와 수련으로 우두머리를 넘고 의뢰를 마칠 수 있다',()=>{
- let count=0;
- for(const path of ['inner','outer'])for(let w=0;w<6;w++)for(let e=0;e<7;e++){
-  let s=strong(hero(path,w,e));s.journey.cleared=['trail','waterway'];s=fight(s,'pass');assert.equal(s.battle.outcome,'victory',path+'/'+w+'/'+e);s=choose(s,'continue');assert.equal(s.journey.complete,true);
-  s=choose(s,'to-hub');assert.ok(scene(s).choices.some(c=>c.id==='read-letter'));s=choose(s,'read-letter');assert.equal(s.scene,'chapter-end');s=choose(s,'to-hub');assert.equal(s.scene,'hub');count++;
- }assert.equal(count,84);
-});
+import {startJourney} from './dist/journey.mjs';
+import {stops,optionsFor} from './dist/chapter.mjs';
+import {abilities,fastForward,tickBattle,maxHp,maxEnergy} from './dist/combat.mjs';
+const act=(s,...ids)=>ids.reduce((x,id)=>choose(x,id),s);
+function hero(){const base=initial('여울');Object.assign(base,{path:'inner',weapon:'검',element:'물',control:3,skill:2,insight:2,flags:['art-control']});return startJourney(base);}
+function strong(s){s.journey.gear=3;s.journey.armor=2;s.control+=3;s.skill+=3;s.hp=maxHp(s);s.energy=maxEnergy(s);s.loadout=['signature','weapon'];return s;}
+function resolve(s,id){s=choose(s,id);if(s.scene==='chapter-event')s=choose(s,scene(s).choices.find(c=>!c.disabled).id);if(s.scene==='combat'){s=choose(s,'start-battle');s=fastForward(s);s=act(s,'continue','to-hub');}else if(['shop','school','forge'].includes(s.scene))s=choose(s,'to-hub');return s;}
+function finishSix(s){for(let i=0;i<6;i++){const c=scene(s).choices.find(c=>c.id.startsWith('node-')&&!c.disabled);s=resolve(s,c.id);}return s;}
+test('챕터는 중간 선택 여섯 칸과 마지막 보스 한 번으로 시작한다',()=>{const s=hero();assert.equal(s.journey.route.used,0);assert.equal(s.journey.route.total,6);assert.equal(optionsFor(s).length,3);assert.ok(!scene(s).choices.some(c=>c.id==='challenge-boss'));assert.ok(abilities(s).some(a=>a.id==='signature'));});
+test('다른 갈림길의 방문을 직접 호출하거나 조기에 보스에게 갈 수 없다',()=>{const s=hero();assert.throws(()=>choose(s,'node-mentor'));assert.throws(()=>choose(s,'challenge-boss'));assert.throws(()=>choose(s,'rest'));assert.throws(()=>choose(s,'open-shop'));assert.throws(()=>choose(s,'explore-trail'));});
+test('장소에 들어갈 때 한 칸을 쓰고 전투 포기도 환불되지 않는다',()=>{let s=act(hero(),'node-fight-trail');assert.equal(s.journey.route.used,1);s=choose(s,'to-hub');assert.equal(s.journey.route.used,1);assert.equal(s.journey.route.history[0].outcome,'전투 포기');assert.throws(()=>choose(s,'node-fight-trail'));});
+test('상점에서 여러 구입과 장착은 한 방문에 속하고 떠난 상점에 재입장할 수 없다',()=>{let s=act(hero(),'node-shop','buy-item-herb');assert.equal(s.journey.route.used,1);s=act(s,'open-bag','bag-back');assert.equal(s.scene,'shop');assert.equal(s.journey.route.used,1);s=choose(s,'to-hub');assert.throws(()=>choose(s,'node-shop'));assert.equal(s.journey.route.current,null);});
+test('휴식도 한 칸을 쓰며 체력과 숨은 그 이벤트에서만 모두 회복된다',()=>{let s=act(hero(),'node-fight-trail','to-hub');s.hp=2;s.energy=0;s=choose(s,'node-rest');assert.equal(s.journey.route.used,2);assert.equal(s.hp,maxHp(s));assert.equal(s.energy,maxEnergy(s));assert.throws(()=>choose(s,'node-rest'));});
+test('장비 확인과 기존 성장점 배분을 반복해도 자원과 여정이 늘지 않는다',()=>{let s=hero();for(let i=0;i<20;i++)s=act(s,'open-bag','bag-back','open-growth','to-hub');assert.equal(s.journey.route.used,0);assert.equal(s.journey.gold,8);assert.equal(s.journey.points,1);s=act(s,'open-growth','grow-control');assert.throws(()=>choose(s,'grow-control'));});
+test('스토리 이벤트는 대가와 보상을 한 번만 적용한 뒤 다음 갈림길로 이동한다',()=>{let s=act(hero(),'node-story-caravan','event-lift');assert.equal(s.hp,8);assert.equal(s.journey.gold,16);assert.equal(s.journey.ore,3);assert.equal(s.journey.route.used,1);assert.throws(()=>choose(s,'event-lift'));assert.equal(s.journey.route.current,null);});
+test('전투 보상은 한 번만 정산되고 재전투에도 남은 기회가 필요하다',()=>{let s=act(strong(hero()),'node-fight-trail','start-battle');s=fastForward(s);s=choose(s,'continue');assert.equal(s.journey.gold,13);assert.throws(()=>choose(s,'continue'));s=choose(s,'to-hub');assert.throws(()=>choose(s,'node-fight-trail'));s=resolve(s,'node-mentor');s=choose(s,'node-fight-trail');assert.equal(s.journey.route.used,3);});
+test('일반 전투 패배는 무보상이며 기회를 이미 쓴 채 이어진다',()=>{let s=act(hero(),'node-fight-trail','start-battle');s.hp=0;s=fastForward(s);s=act(s,'continue','to-hub');assert.equal(s.journey.gold,8);assert.equal(s.journey.route.used,1);assert.equal(s.journey.route.history[0].outcome,'패배');assert.ok(s.hp>=1);});
+test('여섯 선택을 끝내면 새 전투·휴식·상점 선택은 닫히고 보스만 남는다',()=>{const s=finishSix(strong(hero()));assert.equal(s.journey.route.used,6);assert.equal(s.journey.route.history.length,6);assert.equal(optionsFor(s).length,0);assert.ok(scene(s).choices.some(c=>c.id==='challenge-boss'));for(const id of ['node-shop','node-rest','node-fight-trail'])assert.throws(()=>choose(s,id));});
+test('마지막 준비를 드나들어도 전투 난수는 바뀌지 않는다',()=>{let s=finishSix(strong(hero()));s=choose(s,'challenge-boss');const first=choose(s,'start-battle');s=act(s,'open-bag','bag-back','to-hub','open-growth','to-hub','challenge-boss');const second=choose(s,'start-battle');assert.equal(first.battle.seed,second.battle.seed);assert.equal(s.journey.route.used,6);});
+test('보스전 승리 뒤에는 챕터가 끝나 추가 보상을 농사 지을 수 없다',()=>{let s=finishSix(strong(hero()));s=act(s,'challenge-boss','start-battle');s=fastForward(s);assert.equal(s.battle.outcome,'victory');s=choose(s,'continue');assert.equal(s.journey.route.ended,'victory');s=act(s,'read-letter','to-hub');assert.ok(!scene(s).choices.some(c=>c.id.startsWith('node-')));assert.throws(()=>choose(s,'challenge-boss'));});
+test('보스전 패배 뒤 재도전은 챕터 시작의 재화·성장·장비를 복원한다',()=>{let s=finishSix(strong(hero()));const checkpoint=structuredClone(s.journey.route.checkpoint);s=act(s,'challenge-boss','start-battle');s.hp=0;s=fastForward(s);s=choose(s,'continue');assert.equal(s.scene,'chapter-failed');assert.equal(s.journey.route.ended,'defeat');assert.throws(()=>choose(s,'challenge-boss'));s=choose(s,'retry-chapter');assert.equal(s.journey.route.used,0);assert.equal(s.journey.gold,checkpoint.journey.gold);assert.equal(s.skill,checkpoint.skill);assert.equal(s.journey.gear,checkpoint.journey.gear);assert.equal(s.journey.xp,checkpoint.journey.xp);assert.ok(!s.journey.route.checkpoint.journey.route);});
+test('정찰 이벤트에서 얻은 정보는 마지막 보스의 강한 공격을 약화한다',()=>{let s=hero();s.journey.route.used=4;s=act(s,'node-story-scout','event-intel');assert.deepEqual(s.journey.route.intel,['read-pattern']);s=resolve(s,'node-forge');s=act(s,'challenge-boss','start-battle');assert.equal(s.battle.enemy.heavyBonus,2);});
+test('기존 무제한 여정 저장은 장비를 보존하고 이미 쓴 기회를 계산한다',()=>{const old=hero();old.version=4;delete old.journey.route;old.journey.gold=57;old.journey.gear=2;old.journal.push({scene:'상점',choice:'상점에서 장비와 소모품을 살핀다'},{scene:'거점',choice:'샘가에서 충분히 쉰다'});const s=migrate(old);assert.equal(s.version,5);assert.equal(s.journey.gold,57);assert.equal(s.journey.gear,2);assert.equal(s.journey.route.used,2);assert.equal(optionsFor(s).length,3);});
+test('기존 완료 저장을 불러와도 반복 성장 메뉴는 다시 열리지 않는다',()=>{const old=hero();old.version=4;delete old.journey.route;old.journey.complete=true;const s=migrate(old);assert.equal(s.journey.route.ended,'victory');assert.equal(optionsFor(s).length,0);assert.throws(()=>choose(s,'node-shop'));});
+test('여정과 전투를 중간 저장해도 남은 기회와 결과를 보존한다',()=>{let s=act(hero(),'node-fight-trail','start-battle');s=tickBattle(s);const restored=migrate(JSON.parse(JSON.stringify(s)));assert.equal(restored.journey.route.used,1);assert.deepEqual(fastForward(restored),fastForward(s));});
+test('서장 완료 저장은 제자의 이름과 길을 그대로 제한된 챕터에 잇는다',()=>{const old=hero();old.scene='ending';old.version=4;old.journey=null;const s=choose(migrate(old),'next-chapter');assert.equal(s.name,'여울');assert.equal(s.path,'inner');assert.equal(s.journey.route.used,0);assert.equal(s.journey.route.total,stops.length);});
