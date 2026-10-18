@@ -130,3 +130,24 @@ details>summary:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
  .loadout-details summary{font-size:12px}.route-option-copy h3{font-size:18px}
  .battle-controls{gap:5px}.battle-controls button{font-size:12px}
 }
+/* Growth options and combat scaling remain visible and readable. */
+.growth-columns{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;align-items:start}
+.growth-group{min-width:0}.growth-group h2{font-size:16px;margin:0 0 12px;color:var(--ink,#d9e0da)}
+.growth-card{padding:16px;background:rgba(125,161,148,.06);border:1px solid rgba(154,181,165,.22);border-radius:10px;margin-bottom:12px;overflow-wrap:anywhere}
+.growth-card h3{font-size:15px;margin:0 0 8px}.growth-card p{font-size:12px;line-height:1.7}
+.growth-card button{width:100%;margin-top:12px;white-space:normal}
+.skill-scaling{display:grid;gap:5px;margin:10px 0;font-style:normal;font-size:12px;line-height:1.65;text-align:left}
+.skill-scaling b,.rank-preview,.growth-preview{color:#a9d5c3}
+.scaling-formula{color:#ddd0ac}.scaling-note{color:#aab4b0;font-size:11px}
+.stat-guide{border:1px solid rgba(154,181,165,.25);border-radius:10px;margin:16px 0;background:rgba(125,161,148,.04)}
+.stat-guide>summary{padding:13px 15px;cursor:pointer;font-size:13px}
+.stat-guide-body{padding:0 15px 15px}.stat-guide-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.stat-guide-grid p,.basic-explanation p{font-size:12px;line-height:1.8;margin:4px 0 12px}.stat-guide-grid strong{color:#d9c99b}
+.derived-guide{display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:12px;line-height:1.7}.derived-guide dt{font-weight:700}.derived-guide dd{margin:3px 0;color:#aab4b0}
+.sidebar .stat-guide-grid,.sidebar .derived-guide{grid-template-columns:1fr}
+.basic-explanation{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding-top:10px;border-top:1px solid rgba(154,181,165,.15)}
+.sidebar .basic-explanation{grid-template-columns:1fr}
+.growth-instruction{font-size:14px;padding:12px 0}.growth-instruction strong{color:#e2c989;font-size:22px}
+@media(max-width:1000px){.growth-columns{grid-template-columns:1fr}.growth-group{display:grid;grid-template-columns:1fr 1fr;gap:10px}.growth-group h2{grid-column:1/-1}.growth-card{margin:0}.stat-guide-grid{grid-template-columns:1fr}}
+@media(max-width:560px){.growth-group,.derived-guide,.basic-explanation{grid-template-columns:1fr}}
+

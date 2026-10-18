@@ -1,3 +1,4 @@
+import {attackPower,attackHits,shieldPower,recoveryPower} from './scaling.mjs';
 import {adaptArt,ensurePathState} from './paths.mjs';
 import {elementStatus,statusRules,ensureStatuses,statusFor,applyStatus,statusModifiers,decayStatuses} from './statuses.mjs';
 import {equipmentBonus,extraArts} from './workshop.mjs';
@@ -64,12 +65,12 @@ function innerTurn(s){
  if(!chosen&&heavySoon&&b.playerShield<2){b.playerShield+=2;gainVigor(s,1);s.energy=Math.min(maxEnergy(s),s.energy+Math.max(0,1-statusModifiers(s,'player').recovery));emit(s,'guard','player','player','기본 방어',2);log(s,'player','기본 방어 — 강한 공격에 대비해 피해를 2 막는다.',{skill:'기본 방어'});return;}
  if(!chosen&&s.energy<Math.max(2,...known.map(a=>a.cost))&&known.some(a=>!support.has(a.id))&&b.turn%3===0){const amount=Math.min(maxEnergy(s)-s.energy,(s.path==='outer'?3:2)-statusModifiers(s,'player').recovery);s.energy+=amount;gainVigor(s,1);b.playerShield++;emit(s,'recover','player','player','회복 호흡',amount);log(s,'player',`${s.path==='outer'?'외부의 숨을 다시 끌어온다':'호흡을 가다듬어 숨을 모은다'}. 숨 +${amount}, 보호막 +1.`,{skill:'회복 호흡'});return;}
  if(chosen){const stored=ensurePathState(s);stored.release=['focus','mend'].includes(chosen.id)?0:stored.vigor;if(stored.release){stored.vigor=0;emit(s,'status','player','player','축기 '+stored.release+' 방출');}s.energy-=chosen.cost;b.cooldowns[chosen.id]=['counter','signature','flow-counter','focus','mend','tempest'].includes(chosen.id)?3:2;
-  if(chosen.id==='mend'){const gain=Math.min(Math.floor((4+chosen.rank)*statusModifiers(s,'player').healing),maxHp(s)-s.hp);s.hp+=gain;emit(s,'heal','player','player',chosen.name,gain);log(s,'player',`${chosen.name}. 체력 ${gain} 회복.`,{skill:chosen.name});return;}
-  if(chosen.id==='focus'){gainVigor(s,2);const gain=Math.min(Math.max(0,3+chosen.rank-statusModifiers(s,'player').recovery),maxEnergy(s)-s.energy);s.energy+=gain;emit(s,'recover','player','player',chosen.name,gain);log(s,'player',`${chosen.name}. 숨 ${gain} 회복.`,{skill:chosen.name});return;}
-  if(['counter','flow-counter','guard','aegis'].includes(chosen.id)){const amount=({counter:2,'flow-counter':3,guard:3,aegis:5}[chosen.id])+chosen.rank+ensurePathState(s).release;b.counterPower=ensurePathState(s).release;b.playerShield+=amount;b.counter=['counter','flow-counter'].includes(chosen.id);b.counterElement=chosen.id==='flow-counter';emit(s,'guard','player','player',chosen.name,amount);log(s,'player',`${chosen.name}. 보호막 +${amount}${b.counter?' · 반격 태세':''}.`,{skill:chosen.name});return;}
+  if(chosen.id==='mend'){const gain=Math.min(Math.floor(recoveryPower(s,chosen)*statusModifiers(s,'player').healing),maxHp(s)-s.hp);s.hp+=gain;emit(s,'heal','player','player',chosen.name,gain);log(s,'player',`${chosen.name}. 체력 ${gain} 회복.`,{skill:chosen.name});return;}
+  if(chosen.id==='focus'){gainVigor(s,2);const gain=Math.min(Math.max(0,recoveryPower(s,chosen)-statusModifiers(s,'player').recovery),maxEnergy(s)-s.energy);s.energy+=gain;emit(s,'recover','player','player',chosen.name,gain);log(s,'player',`${chosen.name}. 숨 ${gain} 회복.`,{skill:chosen.name});return;}
+  if(['counter','flow-counter','guard','aegis'].includes(chosen.id)){const amount=shieldPower(s,chosen,ensurePathState(s).release);b.counterPower=ensurePathState(s).release;b.playerShield+=amount;b.counter=['counter','flow-counter'].includes(chosen.id);b.counterElement=chosen.id==='flow-counter';emit(s,'guard','player','player',chosen.name,amount);log(s,'player',`${chosen.name}. 보호막 +${amount}${b.counter?' · 반격 태세':''}.`,{skill:chosen.name});return;}
   if(bleedOnAttack(s,'player'))return;
-  const elemental=chosen.id==='element',signature=chosen.id==='signature';const boost=(signature?4+Math.max(s.control,s.skill):['infused','tempest'].includes(chosen.id)?3+s.control+s.skill*.5:elemental?2+s.control+s.insight*.5:2+s.skill*.5)+chosen.rank*1.5;
-  const hit=strike(s,b.stats.attack+boost+ensurePathState(s).release*2+(s.element==='번개'?1:0),{pierce:s.element==='쇠'||(!elemental&&s.weapon==='도'),accuracy:signature&&s.flags.includes('art-insight')?.15:!elemental&&s.weapon==='활'?.12:0});
+  const elemental=chosen.id==='element',signature=chosen.id==='signature';
+  const hit=strike(s,attackPower(s,chosen,b.stats.attack,ensurePathState(s).release),{pierce:s.element==='쇠'||(!elemental&&s.weapon==='도'),accuracy:signature&&s.flags.includes('art-insight')?.15:!elemental&&s.weapon==='활'?.12:0});
   let text=hit.miss?`${chosen.name} — 적이 궤적을 벗어났다.`:`${chosen.name} — ${hit.damage} 피해${hit.critical?' · 치명타':''}.`;
   emit(s,hit.miss?'dodge':'skill','player','enemy',chosen.name,hit.damage||0,{critical:!!hit.critical});
   if(hit.blocked)emit(s,'block','enemy','enemy','적의 방어',hit.blocked);
@@ -81,11 +82,11 @@ function gainVigor(s,amount){const p=ensurePathState(s);if(s.path!=='inner')retu
 function outerGuard(s){s.battle.playerShield+=2;emit(s,'guard','player','player','기본 방어',2);log(s,'player','기본 방어 — 다음 주문을 펼칠 틈을 지킨다.',{skill:'기본 방어'});}
 function setField(s,turns,ward=false){ensurePathState(s).field={turns,element:s.element,ward};emit(s,'status','player','enemy',s.element+'결 영역 · '+turns+'회 유지');}
 function releaseSpell(s,a){
- const b=s.battle,e=b.enemy;let hits=a.id==='tempest'?3:a.id==='chain'||(a.id==='signature'&&s.flags.includes('art-skill'))?2:1;
+ const b=s.battle,e=b.enemy;const hits=attackHits(s,a);
  const shield=a.id==='signature'&&s.flags.includes('art-control')?4+a.rank:0;if(shield){b.playerShield+=shield;emit(s,'guard','player','player','유지 결계',shield);}
  if(bleedOnAttack(s,'player'))return;
- for(let i=0;i<hits&&e.hp>0;i++){const boost=(a.id==='signature'?5+s.control:a.id==='tempest'?3+s.control:4+s.control+s.insight*.5)+a.rank*1.5;const scale=hits>1?(i===0?1:.55):1;
-  const hit=strike(s,(b.stats.attack+boost)*scale,{pierce:['infused','signature'].includes(a.id)||s.element==='쇠'||s.weapon==='창'||s.weapon==='검',accuracy:s.weapon==='활'?.16:.05});
+ for(let i=0;i<hits&&e.hp>0;i++){
+  const hit=strike(s,attackPower(s,a,b.stats.attack,0,i),{pierce:['infused','signature'].includes(a.id)||s.element==='쇠'||s.weapon==='창'||s.weapon==='검',accuracy:s.weapon==='활'?.16:.05});
   emit(s,hit.miss?'dodge':'skill','player','enemy',a.name+(hits>1?' · '+(i+1)+'탄':''),hit.damage||0,{critical:!!hit.critical,magic:true});
   if(hit.blocked)emit(s,'block','enemy','enemy','적의 방어',hit.blocked);
   log(s,'player',a.name+' 발동 — '+(hit.miss?'투사체가 빗나갔다.':hit.damage+' 피해.'),{skill:a.name});
@@ -111,9 +112,9 @@ function outerTurn(s){
  if(chosen){s.energy-=chosen.cost;
   if(chosen.mode==='cast'){p.casting={id:chosen.id,name:chosen.name,cost:chosen.cost};emit(s,'cast','player','player',chosen.name+' 준비',0,{magic:true});log(s,'player',chosen.name+' 준비 — 다음 내 행동에 발동한다. 주변 숨 -'+chosen.cost+'.',{skill:chosen.name+' 준비'});return;}
   b.cooldowns[chosen.id]=3;
-  if(chosen.mode==='disrupt'){const shield=2+chosen.rank;b.enemy.disrupted=(chosen.id==='flow-counter'?2:1)+Math.floor(chosen.rank/2);b.enemy.counterReady=false;b.playerShield+=shield;emit(s,'guard','player','player',chosen.name,shield);emit(s,'status','player','enemy','강타·반격 준비 봉쇄');if(chosen.id==='flow-counter')inflict(s,'enemy',s.element);log(s,'player',chosen.name+' — 적의 강타와 반격 준비를 막는다.',{skill:chosen.name});return;}
-  if(chosen.mode==='ward'){const amount=3+chosen.rank;b.playerShield+=amount;if(chosen.id==='aegis')setField(s,3,true);emit(s,'guard','player','player',chosen.name,amount);log(s,'player',chosen.name+' — 보호막 '+amount+'.',{skill:chosen.name});return;}
-  if(chosen.mode==='renew'){p.renewal=3;p.renewalPower=2+chosen.rank;emit(s,'status','player','player','생기 순환 · 3회 유지');log(s,'player',chosen.name+' — 다음 세 행동에 회복을 유지한다.',{skill:chosen.name});return;}
+  if(chosen.mode==='disrupt'){const shield=shieldPower(s,chosen);b.enemy.disrupted=(chosen.id==='flow-counter'?2:1)+Math.floor(chosen.rank/2);b.enemy.counterReady=false;b.playerShield+=shield;emit(s,'guard','player','player',chosen.name,shield);emit(s,'status','player','enemy','강타·반격 준비 봉쇄');if(chosen.id==='flow-counter')inflict(s,'enemy',s.element);log(s,'player',chosen.name+' — 적의 강타와 반격 준비를 막는다.',{skill:chosen.name});return;}
+  if(chosen.mode==='ward'){const amount=shieldPower(s,chosen);b.playerShield+=amount;if(chosen.id==='aegis')setField(s,3,true);emit(s,'guard','player','player',chosen.name,amount);log(s,'player',chosen.name+' — 보호막 '+amount+'.',{skill:chosen.name});return;}
+  if(chosen.mode==='renew'){p.renewal=3;p.renewalPower=recoveryPower(s,chosen);emit(s,'status','player','player','생기 순환 · 3회 유지');log(s,'player',chosen.name+' — 다음 세 행동에 회복을 유지한다.',{skill:chosen.name});return;}
   if(chosen.mode==='focus'){const gain=Math.min(Math.max(0,3+chosen.rank-statusModifiers(s,'player').recovery),maxEnergy(s)-s.energy);s.energy+=gain;emit(s,'recover','player','player',chosen.name,gain);log(s,'player',chosen.name+' — 주변 숨 '+gain+' 인도.',{skill:chosen.name});return;}
  }
  if(heavySoon&&b.playerShield<2){outerGuard(s);return;}
