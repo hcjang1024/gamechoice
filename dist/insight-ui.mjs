@@ -1,3 +1,4 @@
+import {passiveDefinitions,passiveValues,bonusText} from './passives.mjs';
 import {combatStats,abilityCatalog,abilities} from './combat.mjs';
 import {attackPower,attackHits,isAttack,shieldPower,recoveryPower} from './scaling.mjs';
 import {elementDescriptions} from './combat.mjs';
@@ -5,6 +6,7 @@ const esc=x=>String(x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'
 const n=x=>Number(x.toFixed(2));
 const pct=x=>n(x*100)+'%';
 export function skillInsight(s,a){
+ if(a.passive){const definition=passiveDefinitions.find(p=>p.id===a.id);return {value:bonusText(passiveValues(definition,a.rank||0)),formula:'장착 중 상시 적용',notes:'강화 단계마다 효과가 증가합니다.'};}
  const outer=s.path==='outer',rank=a.rank||0,stats=combatStats(s);
  if(isAttack(a.id)){
   let formula;
@@ -42,7 +44,7 @@ export function basicInfo(s){
 }
 export function statGuide(s,open=false){
  const st=s.weapon?combatStats(s):null;
- return `<details class="stat-guide" ${open?'open':''}><summary>스탯이 바꾸는 것</summary><div class="stat-guide-body"><div class="stat-guide-grid"><p><strong>제어 ${s.control}</strong><br>3마다 방어 +1.${s.path==='outer'?' 2마다 전투 위력 +1. 주문의 첫 위력에 1당 +1.':' 발경·합격 위력 상승. 고유 무공은 제어·숙련 중 큰 값을 사용.'}</p><p><strong>숙련 ${s.skill}</strong><br>1당 명중 +2.5%p.${s.path==='outer'?' 주문도 명중의 영향을 받습니다.':' 2마다 전투 위력 +1. 무기 기술·합격 위력도 상승.'}</p><p><strong>통찰 ${s.insight}</strong><br>2마다 속도 +1. 1당 명중 +2%p, 회피 +2.5%p, 치명타 확률 +1.5%p. ${s.path==='outer'?'일부 주문 위력도 상승.':'발경 위력도 상승.'}</p></div>${st?`<dl class="derived-guide"><div><dt>위력 ${st.attack}</dt><dd>무기·등급·장비·준비 효과와 스탯을 합친 공격의 바탕값.</dd></div><div><dt>방어 ${st.defense}</dt><dd>적 타격 피해를 줄입니다. 보호막과 별개이며 관통 공격에는 적용되지 않습니다.</dd></div><div><dt>속도 ${st.speed}</dt><dd>전투 시작 시 선공 판정. 적과 같으면 먼저 행동합니다.</dd></div><div><dt>명중 ${pct(st.accuracy)}</dt><dd>기본 명중 = 83% + 숙련 × 2.5%p + 통찰 × 2%p + 장비. 기본 상한 99%. 타격 시 기술 보정·상태이상·적 회피를 반영해 5~99%로 제한.</dd></div><div><dt>회피 ${pct(st.evasion)}</dt><dd>통찰 × 2.5%p + 장비 + 바람 12%p. 상한 50%.</dd></div><div><dt>치명타 ${pct(Math.min(1,.08+s.insight*.015))}</dt><dd>8% + 통찰 × 1.5%p, 상한 100%. 치명타는 위력 +2.</dd></div></dl>${basicInfo(s)}`:''}<p class="muted">성장 설명은 상태이상 없는 기준값입니다. 전투 중 능력치 표에는 약화·부식 등의 현재 효과가 반영됩니다. 기술 위력은 방어·보호막·치명타 적용 전 수치이며, 실제 타격 때 반올림합니다.</p></div></details>`;
+ return `<details class="stat-guide" ${open?'open':''}><summary>스탯이 바꾸는 것</summary><div class="stat-guide-body"><div class="stat-guide-grid"><p><strong>제어 ${s.control}</strong><br>3마다 방어 +1.${s.path==='outer'?' 2마다 전투 위력 +1. 주문의 첫 위력에 1당 +1.':' 발경·합격 위력 상승. 고유 무공은 제어·숙련 중 큰 값을 사용.'}</p><p><strong>숙련 ${s.skill}</strong><br>1당 명중 +2.5%p.${s.path==='outer'?' 주문도 명중의 영향을 받습니다.':' 2마다 전투 위력 +1. 무기 기술·합격 위력도 상승.'}</p><p><strong>통찰 ${s.insight}</strong><br>2마다 속도 +1. 1당 명중 +2%p, 회피 +2.5%p, 치명타 확률 +1.5%p. ${s.path==='outer'?'일부 주문 위력도 상승.':'발경 위력도 상승.'}</p></div>${st?`<dl class="derived-guide"><div><dt>위력 ${st.attack}</dt><dd>무기·등급·장비·패시브·준비 효과와 스탯을 합친 공격의 바탕값.</dd></div><div><dt>방어 ${st.defense}</dt><dd>적 타격 피해를 줄입니다. 보호막과 별개이며 관통 공격에는 적용되지 않습니다.</dd></div><div><dt>속도 ${st.speed}</dt><dd>전투 시작 시 선공 판정. 적과 같으면 먼저 행동합니다.</dd></div><div><dt>명중 ${pct(st.accuracy)}</dt><dd>기본 명중 = 83% + 숙련 × 2.5%p + 통찰 × 2%p + 장비·패시브. 기본 상한 99%. 타격 시 기술 보정·상태이상·적 회피를 반영해 5~99%로 제한.</dd></div><div><dt>회피 ${pct(st.evasion)}</dt><dd>통찰 × 2.5%p + 장비 + 바람 12%p. 상한 50%.</dd></div><div><dt>치명타 ${pct(Math.min(1,.08+s.insight*.015))}</dt><dd>8% + 통찰 × 1.5%p, 상한 100%. 치명타는 위력 +2.</dd></div></dl>${basicInfo(s)}`:''}<p class="muted">성장 설명은 상태이상 없는 기준값입니다. 전투 중 능력치 표에는 약화·부식 등의 현재 효과가 반영됩니다. 기술 위력은 방어·보호막·치명타 적용 전 수치이며, 실제 타격 때 반올림합니다.</p></div></details>`;
 }
 export function growthPreview(s,key){
  const before=combatStats(s),after=combatStats({...s,[key]:s[key]+1}),labels={attack:'위력',defense:'방어',speed:'속도',accuracy:'명중',evasion:'회피'};
@@ -53,13 +55,13 @@ export function growthPreview(s,key){
 }
 export function growthPanel(s,data){
  if(s.journey.points<1)return '<p class="muted">사용할 성장점이 없습니다.</p>'+data.choices.map(c=>`<button class="choice" data-choice="${c.id}">${esc(c.title)}</button>`).join('');
- const labels={stat:'능력치 상승',skill:'새 기술',upgrade:'기술 강화',item:'아이템 획득'};
+ const labels={stat:'능력치 상승',skill:'새 기술',upgrade:'기술 강화',item:'아이템 획득',passive:'새 패시브','passive-upgrade':'패시브 강화'};
  const card=(c,index)=>{
   let body='';
   if(c.rewardType==='stat')body=`<p class="growth-preview">${esc(growthPreview(s,c.stat))}</p>`;
-  else if(c.rewardType==='item')body=`<p class="reward-item-description">${esc(c.item.description)}</p><p class="muted">${c.item.type==='equipment'?'장비 · 소지품에서 장착':'소모품 · 소지품에서 사용'}</p>`;
-  else if(c.ability){body=skillInfo(s,c.ability);if(c.rewardType==='upgrade')body+=`<p class="rank-preview">강화 후 · ${esc(skillInsight(s,{...c.ability,rank:(c.ability.rank||0)+1}).value)}</p>`;}
-  return `<article class="growth-card reward-${c.rewardType}"><p class="reward-tag"><span>0${index+1}</span> ${labels[c.rewardType]}</p><h3>${esc(c.title)}</h3><p class="muted">${esc(c.hint||'')}</p>${body}<button class="primary" data-choice="${c.id}" aria-label="${esc(c.title)} 선택 · 성장점 1 사용">이 보상 선택</button></article>`;
+  else if(c.rewardType==='item')body=`<p class="reward-item-description">${esc(c.item.description)}</p><p class="muted">${c.item.type==='equipment'?'장비 탭에서 착용':'장비 탭에서 사용'}</p>`;
+  else if(c.ability){body=`<p class="reward-value">${esc(skillInsight(s,c.ability).value)}</p><details class="skill-math reward-math"><summary>수치 상세</summary>${skillInfo(s,c.ability)}</details>`;if(c.rewardType==='upgrade'||c.rewardType==='passive-upgrade')body+=`<p class="rank-preview">강화 후 · ${esc(skillInsight(s,{...c.ability,rank:(c.ability.rank||0)+1}).value)}</p>`;}
+  return `<article class="growth-card reward-${c.rewardType}"><p class="reward-tag"><span>0${index+1}</span> ${labels[c.rewardType]}</p><h3>${esc(c.title)}</h3>${c.rewardType==='item'?'':`<p class="muted">${esc(c.hint||'')}</p>`}${body}<button class="primary" data-choice="${c.id}" aria-label="${esc(c.title)} 선택 · 성장점 1 사용">이 보상 선택</button></article>`;
  };
  return `<section class="growth-options draft-options" aria-label="무작위 성장 보상 세 가지"><div class="growth-instruction"><span>세 보상 중 <b>하나</b>를 선택하세요</span><span>남은 성장점 <strong>${s.journey.points}</strong></span></div><div class="draft-grid">${data.choices.map(card).join('')}</div><p class="draft-note">선택한 보상만 얻습니다. 성장점이 남으면 새로운 세 보상이 제시됩니다.</p></section>`;
 }

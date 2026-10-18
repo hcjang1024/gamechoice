@@ -1,3 +1,4 @@
+import {ACTIVE_LIMIT,ensurePassives,passiveBonus} from './passives.mjs';
 import {attackPower,attackHits,shieldPower,recoveryPower} from './scaling.mjs';
 import {adaptArt,ensurePathState} from './paths.mjs';
 import {elementStatus,statusRules,ensureStatuses,statusFor,applyStatus,statusModifiers,decayStatuses} from './statuses.mjs';
@@ -12,8 +13,8 @@ export const weaponProfiles={
  '지팡이':{attack:1,speed:2,guard:2,range:1,basic:'후려치기',art:'회류봉',description:'공격 뒤 보호막 2 획득'}
 };
 export const elementDescriptions=Object.fromEntries(Object.entries(elementStatus).map(([element,id])=>[element,statusRules[id].name+' · '+statusRules[id].description]));
-export const maxHp=s=>10+Math.max(0,(s.journey?.level||1)-1)*2+equipmentBonus(s).hp;
-export const maxEnergy=s=>6+Math.floor(Math.max(0,(s.journey?.level||1)-1)/2)+equipmentBonus(s).energy;
+export const maxHp=s=>10+Math.max(0,(s.journey?.level||1)-1)*2+equipmentBonus(s).hp+passiveBonus(s).hp;
+export const maxEnergy=s=>6+Math.floor(Math.max(0,(s.journey?.level||1)-1)/2)+equipmentBonus(s).energy+passiveBonus(s).energy;
 export function abilityCatalog(s){
  if(!s.path||!s.weapon)return [];
  const p=weaponProfiles[s.weapon],outer=s.path==='outer';
@@ -25,13 +26,13 @@ export function abilityCatalog(s){
  return [...list,...extraArts(s)].map(a=>adaptArt(s,a)).map(a=>({...a,rank:s.journey?.skillRanks[a.id]||0,name:a.name+((s.journey?.skillRanks[a.id]||0)>0?' +'+s.journey.skillRanks[a.id]:'')}));
 }
 export function abilities(s){return abilityCatalog(s).filter(a=>a.id==='signature'||(s.learnedSkills||[]).includes(a.id)||s.journey?.learned?.includes(a.id));}
-export function grantAbility(s,id){s.learnedSkills??=[];if(['weapon','element','counter'].includes(id)&&!s.learnedSkills.includes(id))s.learnedSkills.push(id);const known=abilities(s).map(a=>a.id);s.loadout=(s.loadout??[]).filter(id=>known.includes(id));if(s.loadout.length<2&&!s.loadout.includes(id))s.loadout.push(id);}
-export function combatStats(s){const p=weaponProfiles[s.weapon],gear=equipmentBonus(s),buff=s.journey?.prepBuffs||{};return {attack:(s.path==='inner'?2+Math.floor(s.skill/2):1+Math.floor(s.control/2))+p.attack+(s.journey?.gear||0)+Math.floor((s.journey?.level||1)/2)+gear.attack+(buff.attack||0),defense:p.guard+Math.floor(s.control/3)+(s.journey?.armor||0)+gear.defense,speed:p.speed+Math.floor(s.insight/2)+(s.element==='바람'?2:0)+gear.speed+(buff.speed||0),accuracy:Math.min(.99,.83+s.skill*.025+s.insight*.02+gear.accuracy),evasion:Math.min(.5,s.insight*.025+(s.element==='바람'?.12:0)+gear.evasion),range:p.range};}
+export function grantAbility(s,id){s.learnedSkills??=[];if(['weapon','element','counter'].includes(id)&&!s.learnedSkills.includes(id))s.learnedSkills.push(id);const known=abilities(s).map(a=>a.id);s.loadout=[...new Set(s.loadout??[])].filter(id=>known.includes(id)).slice(0,ACTIVE_LIMIT);if(s.loadout.length<ACTIVE_LIMIT&&!s.loadout.includes(id))s.loadout.push(id);}
+export function combatStats(s){const p=weaponProfiles[s.weapon],gear=equipmentBonus(s),passive=passiveBonus(s),buff=s.journey?.prepBuffs||{};return {attack:(s.path==='inner'?2+Math.floor(s.skill/2):1+Math.floor(s.control/2))+p.attack+(s.journey?.gear||0)+Math.floor((s.journey?.level||1)/2)+gear.attack+passive.attack+(buff.attack||0),defense:p.guard+Math.floor(s.control/3)+(s.journey?.armor||0)+gear.defense+passive.defense,speed:p.speed+Math.floor(s.insight/2)+(s.element==='바람'?2:0)+gear.speed+passive.speed+(buff.speed||0),accuracy:Math.min(.99,.83+s.skill*.025+s.insight*.02+gear.accuracy+passive.accuracy),evasion:Math.min(.5,s.insight*.025+(s.element==='바람'?.12:0)+gear.evasion+passive.evasion),range:p.range};}
 function random(b){let x=b.seed;x^=x<<13;x^=x>>>17;x^=x<<5;b.seed=x>>>0;return b.seed/4294967296;}
 function seedFor(s){let n=2166136261;const encounter=s.journey?.route?.current?.step??s.journal.length;for(const c of `${s.name}|${s.path}|${s.element}|${s.weapon}|${encounter}`)n=Math.imul(n^c.charCodeAt(0),16777619);return n>>>0||1;}
 export function beginBattle(state,config={}){
- const s=structuredClone(state);const stats=combatStats(s);const ids=abilities(s).map(a=>a.id);
- s.loadout=(s.loadout?.filter(id=>ids.includes(id))??ids).slice(0,2);
+ const s=structuredClone(state);ensurePassives(s);const stats=combatStats(s);const ids=abilities(s).map(a=>a.id);
+ s.loadout=[...new Set(s.loadout?.filter(id=>ids.includes(id))??ids)].slice(0,ACTIVE_LIMIT);
  const enemy={name:'다리의 약탈자',hp:25,attack:3,defense:1,speed:3,weapon:'짧은 칼',heavyEvery:3,heavyBonus:2,...config.enemy};
  const first=stats.speed>=enemy.speed||s.flags.includes('advantage')?'player':'enemy';
  const initialShield=s.journey?.prepBuffs?.shield||0;

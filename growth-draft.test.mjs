@@ -1,3 +1,4 @@
+import {passiveDefinitions,grantPassive} from './dist/passives.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {initial,choose,scene,migrate,weapons,elements} from './dist/engine.mjs';
@@ -19,7 +20,7 @@ test('every growth draft has exactly three distinct eligible rewards from the sh
   for(const c of choices){types.add(c.rewardType);assert.equal(c.disabled,false);assert.ok([...pool.skills,...pool.stats,...pool.items].some(a=>a.id===c.id));}
   drafts.add(choices.map(c=>c.id).join(','));
  }
- assert.ok(drafts.size>30);assert.deepEqual([...types].sort(),['item','skill','stat','upgrade']);
+ assert.ok(drafts.size>30);assert.deepEqual([...types].sort(),['item','passive','skill','stat','upgrade']);
 });
 test('rendering, repeated scene reads and reload do not reroll an unresolved draft or consume RNG',()=>{
  const s=hero(),before=structuredClone(s);
@@ -70,7 +71,7 @@ test('stat rewards apply the shown increase and preserve all other rewards and r
  }
 });
 test('when skills are maxed, three usable stats or items still appear with no disabled dead end',()=>{
- const s=hero();s.learnedSkills=['weapon','element','counter'];s.journey.learned=manualsFor(s).map(a=>a.id).concat(recipesFor(s).map(a=>a.id));
+ const s=hero();for(const a of passiveDefinitions){grantPassive(s,a.id);s.passiveRanks[a.id]=3;}s.learnedSkills=['weapon','element','counter'];s.journey.learned=manualsFor(s).map(a=>a.id).concat(recipesFor(s).map(a=>a.id));
  for(const a of abilities(s))s.journey.skillRanks[a.id]=3;
  for(const i of items.filter(i=>i.type==='equipment'))s.journey.inventory[i.id]=1;
  delete s.journey.growthDraft;const choices=growthChoices(s);
@@ -98,11 +99,11 @@ test('fusion produces a distinct named skill on both paths and retains the new n
 
 
 test('no category is guaranteed: three skills, three stats or three items can each be offered',()=>{
- const cases=[['skill',2027808452],['stat',3357192724],['item',3041712678]];
+ const cases=[['skill',2027808452],['stat',2253901550],['item',3041712678]];
  for(const [type,seed]of cases){
   const s=hero();s.journey.growthSeed=seed;delete s.journey.growthDraft;
   const choices=growthChoices(s);assert.equal(choices.length,3);
-  assert.ok(choices.every(c=>(c.rewardType==='upgrade'?'skill':c.rewardType)===type));
+  assert.ok(choices.every(c=>(['upgrade','passive','passive-upgrade'].includes(c.rewardType)?'skill':c.rewardType)===type));
   assert.deepEqual(scene(migrate(JSON.parse(JSON.stringify(s)))).choices,choices);
  }
 });

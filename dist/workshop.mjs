@@ -1,3 +1,4 @@
+import {passiveBonus} from './passives.mjs';
 import {adaptArt} from './paths.mjs';
 export const items=[
  {id:'herb',name:'약초 꾸러미',type:'consumable',price:3,icon:'葉',description:'체력 6 회복',heal:6},
@@ -34,4 +35,4 @@ export const recipes=[
 export const manualsFor=s=>manuals.map(a=>adaptArt(s,a));
 export const recipesFor=s=>recipes.map(a=>adaptArt(s,a));
 export function extraArts(s){return [...manuals,...recipes].filter(a=>s.journey?.learned?.includes(a.id)).map(a=>({...a,name:recipes.includes(a)?`${s.element}결 · ${a.name}`:a.name}));}
-export function canUseItem(s,item){if(!s.journey||!item||item.type!=='consumable'||itemCount(s.journey,item.id)<1)return false;if(item.heal)return s.hp<10+(s.journey.level-1)*2+equipmentBonus(s).hp;if(item.energy)return s.energy<6+Math.floor((s.journey.level-1)/2)+equipmentBonus(s).energy;return !s.journey.prepBuffs?.[item.buff];}
+export function canUseItem(s,item){if(!s.journey||!item||item.type!=='consumable'||itemCount(s.journey,item.id)<1)return false;if(item.heal)return s.hp<10+(s.journey.level-1)*2+equipmentBonus(s).hp+passiveBonus(s).hp;if(item.energy)return s.energy<6+Math.floor((s.journey.level-1)/2)+equipmentBonus(s).energy+passiveBonus(s).energy;return !s.journey.prepBuffs?.[item.buff];}

@@ -1,3 +1,4 @@
+import {ensurePassives} from './passives.mjs';
 import {ensurePathState,pathInfo} from './paths.mjs';
 import {ensureStatuses} from './statuses.mjs';
 import {enforceGrowth} from './progression.mjs';
@@ -7,7 +8,7 @@ import {ensureWorkshop} from './workshop.mjs';
 import {ensureRoute} from './chapter.mjs';
 export const weapons=['맨손','검','도','창','활','지팡이'];
 export const elements=['물','불','흙','바람','나무','쇠','번개'];
-export function initial(name){return {version:6,name,scene:'arrival',path:null,trial:null,element:null,weapon:null,hp:10,energy:6,control:0,insight:0,skill:0,training:0,relations:[],learnedSkills:[],loadout:[],battle:null,journey:null,flags:[],journal:[],last:'',ending:null};}
+export function initial(name){return {version:6,name,scene:'arrival',path:null,trial:null,element:null,weapon:null,hp:10,energy:6,control:0,insight:0,skill:0,training:0,relations:[],learnedSkills:[],loadout:[],passiveSkills:[],passiveLoadout:[],passiveRanks:{},battle:null,journey:null,flags:[],journal:[],last:'',ending:null};}
 export function migrate(raw){
  if(!raw||![1,2,3,4,5,6].includes(raw.version)||typeof raw.name!=='string'||!Array.isArray(raw.journal)||!Array.isArray(raw.flags))throw new Error('유효하지 않은 저장');
  const s={...initial(raw.name),...structuredClone(raw)};
@@ -17,7 +18,7 @@ export function migrate(raw){
  if(!['hp','energy','control','insight','skill','training'].every(k=>Number.isFinite(s[k])&&s[k]>=0)||!Array.isArray(s.relations))throw new Error('유효하지 않은 능력치');
  if(raw.version<6){s.learnedSkills=['weapon',...(s.control>=2?['element']:[]),...(s.insight>=2?['counter']:[])];s.loadout=raw.loadout??s.learnedSkills.slice(0,2);const cp=s.journey?.route?.checkpoint;if(cp){cp.version=6;cp.learnedSkills=['weapon',...(cp.control>=2?['element']:[]),...(cp.insight>=2?['counter']:[])];cp.loadout??=cp.learnedSkills.slice(0,2);}}
  if(!Array.isArray(s.learnedSkills)||!s.learnedSkills.every(id=>['weapon','element','counter'].includes(id)))throw new Error('유효하지 않은 학습 기록');
- ensureWorkshop(s.journey);ensureRoute(s,raw.version<5);if(s.battle){ensureStatuses(s.battle);ensurePathState(s);}s.version=6;enforceGrowth(s);scene(s);return s;
+ ensurePassives(s);ensureWorkshop(s.journey);ensureRoute(s,raw.version<5);if(s.battle){ensureStatuses(s.battle);ensurePathState(s);}s.version=6;enforceGrowth(s);scene(s);return s;
 }
 const remember=(s,event)=>{if(!s.relations.includes(event))s.relations.push(event);};
 export function relationshipEvents(s){const labels={'first-help':'첫날, 이솔의 짐을 함께 들었다.','shared-practice':'서로의 빈틈을 짚으며 합을 맞췄다.','held-line':'다리 앞에서 이솔의 뒤를 지켰다.','shared-rescue':'위험한 다리에서 함께 아이와 약초를 구했다.','child-rescue':'아이를 먼저 구하는 선택을 함께했다.','isol-injured':'아이를 맡긴 이솔이 팔을 다쳤다.','shared-watch':'청운문 아래에서 이솔과 밤 경계를 나누었다.'};return s.relations.map(id=>labels[id]).filter(Boolean);}
