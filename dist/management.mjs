@@ -1,4 +1,5 @@
 import {abilities,maxHp,maxEnergy} from './combat.mjs';
+import {categoryOf,normalizeLoadout} from './skillbook.mjs';
 import {ACTIVE_LIMIT,PASSIVE_LIMIT,ensurePassives,learnedPassives} from './passives.mjs';
 import {itemFor,itemCount,canUseItem} from './workshop.mjs';
 import {marketChoose} from './market.mjs';
@@ -10,6 +11,7 @@ export function manageBuild(state,action,id){
   const passive=action==='passive',known=passive?learnedPassives(s):abilities(s),key=passive?'passiveLoadout':'loadout',limit=passive?PASSIVE_LIMIT:ACTIVE_LIMIT;
   if(!known.some(a=>a.id===id))throw Error('아직 배우지 않은 기술입니다.');
   const ids=[...new Set(s[key]||[])].filter(id=>known.some(a=>a.id===id)).slice(0,limit);
+  if(!passive){normalizeLoadout(s,known.map(a=>a.id));s.loadout=s.loadout.includes(id)?s.loadout.filter(k=>k!==id):[...s.loadout.filter(k=>categoryOf(k)!==categoryOf(id)),id];return s;}
   if(ids.includes(id))s[key]=ids.filter(k=>k!==id);
   else {if(ids.length>=limit)throw Error((passive?'패시브':'액티브')+'는 최대 '+limit+'개입니다. 먼저 하나를 해제하세요.');s[key]=[...ids,id];}
   s.hp=Math.min(s.hp,maxHp(s));s.energy=Math.min(s.energy,maxEnergy(s));return s;

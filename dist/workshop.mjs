@@ -35,15 +35,15 @@ export const itemCount=(j,id)=>id==='herb'?j.herbs:(j.inventory?.[id]||0);
 export function equipmentBonus(s){const bonus={attack:0,defense:0,speed:0,accuracy:0,evasion:0,hp:0,energy:0};for(const id of Object.values(s.journey?.equipped||{})){const item=itemFor(id);if(item?.type==='equipment')for(const [k,v]of Object.entries(item.bonus))bonus[k]+=v;}return bonus;}
 export function ensureWorkshop(j){if(!j)return;j.inventory??={};j.equipped??={};j.learned??=[];j.prepBuffs??={};}
 export const manuals=[
- {id:'guard',name:'기초 수비',price:6,requirement:'제어 1',stat:'control',min:1,cost:1,kind:'방어 기술',description:'보호막 3 생성 · 적의 강한 공격 직전에 자동 사용'},
- {id:'focus',name:'집중 호흡',price:6,requirement:'실전 등급 1',stat:null,min:0,cost:0,kind:'호흡 기술',description:'숨 3 회복 · 숨이 모자랄 때 자동 사용'},
+ {id:'guard',name:'기초 수비',price:6,requirement:'제어 1',stat:'control',min:1,cost:1,kind:'방어 기술',description:'보호막 3 생성'},
+ {id:'focus',name:'집중 호흡',price:6,requirement:'실전 등급 1',stat:null,min:0,cost:0,kind:'호흡 기술',description:'숨 3 회복'},
  {id:'chain',name:'연속격',price:10,requirement:'숙련 2',stat:'skill',min:2,cost:2,kind:'연타 기술',description:'두 번 연속 타격 · 두 번째 타격은 절반 위력'},
- {id:'mend',name:'응급 조율',price:10,requirement:'제어 2',stat:'control',min:2,cost:2,kind:'회복 기술',description:'체력 4 회복 · 체력이 절반 이하일 때 자동 사용'}
+ {id:'mend',name:'응급 조율',price:10,requirement:'제어 2',stat:'control',min:2,cost:2,kind:'회복 기술',description:'체력 4 회복'}
 ];
 export const recipes=[
  {id:'infused',name:'결을 실은 일격',ingredients:['weapon','element'],labels:['무기 기술','결의 기술'],gold:8,ore:1,cost:3,kind:'조합 공격',description:'무기와 결을 함께 펼치는 강한 타격 · 속성 효과 발동'},
  {id:'flow-counter',name:'흐름 되돌리기',ingredients:['element','counter'],labels:['결의 기술','간파 반격'],gold:8,ore:1,cost:2,kind:'조합 반격',description:'보호막 3 · 반격에 자신의 결을 실어 되돌린다'},
- {id:'aegis',name:'결의 수호',ingredients:['guard','element'],labels:['기초 수비','결의 기술'],gold:8,ore:1,cost:2,kind:'조합 방어',description:'보호막 5 · 적의 강한 공격에 앞서 자동 사용'},
+ {id:'aegis',name:'결의 수호',ingredients:['guard','element'],labels:['기초 수비','결의 기술'],gold:8,ore:1,cost:2,kind:'조합 방어',description:'보호막 5'},
  {id:'tempest',name:'연쇄 파동',ingredients:['chain','infused'],labels:['연속격','결을 실은 일격'],gold:16,ore:2,cost:4,kind:'상위 조합',description:'세 번 이어지는 결의 타격 · 세 번째는 절반 위력'}
 ];
 export const manualsFor=s=>manuals.map(a=>adaptArt(s,a));

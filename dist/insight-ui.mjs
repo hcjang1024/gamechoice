@@ -7,8 +7,12 @@ const esc=x=>String(x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'
 const n=x=>Number(x.toFixed(2));
 const pct=x=>n(x*100)+'%';
 export function skillInsight(s,a){
- if(a.passive){const definition=passiveDefinitions.find(p=>p.id===a.id);return {value:bonusText(passiveValues(definition,a.rank||0)),formula:'장착 중 상시 적용',notes:'강화 단계마다 효과가 증가합니다.'};}
+ if(a.passive){const definition=passiveDefinitions.find(p=>p.id===a.id);return {value:definition.trigger||bonusText(passiveValues(definition,a.rank||0)),formula:definition.trigger?'조건 충족 시 발동 · 강화 단계 +'+(a.rank||0):'장착 중 상시 적용',notes:'강화 단계마다 효과가 증가합니다.'};}
  const outer=s.path==='outer',rank=a.rank||0,stats=combatStats(s);
+ if(a.id==='purify')return {value:'정화 후 보호막 '+(Math.floor(s.control/2)+rank)+' + 제거 중첩 × 2',formula:'제어 ÷ 2 (버림) + 강화 단계 + 제거한 상태 중첩 × 2',notes:'자신의 모든 상태이상을 제거합니다.'};
+ if(a.id==='stance')return {value:'다음 공격 위력 +'+n(2+s.insight*.5+rank),formula:'2 + 통찰 × 0.5 + 강화 단계',notes:'턴을 소모하지 않습니다. 기본 공격·공격 기술·준비 주문의 발동에 한 번 적용됩니다.'};
+ if(a.id==='detonate')return {value:'위력 '+(stats.attack+4+s.control+rank*2)+' + 소모 중첩 × 3',formula:'전투 위력 + 4 + 제어 + 강화 단계 × 2 + 적 상태 중첩 × 3',notes:'적의 상태이상을 모두 소모합니다. 방어를 무시하며, 명중 보정 +15%p. 치명타는 위력 +2.'};
+ if(a.id==='ascend')return {value:'숨 완전 회복 · 보호막 '+(4+(outer?s.control:s.skill)+rank),formula:'보호막 = 4 + '+(outer?'제어':'숙련')+' + 강화 단계',notes:outer?'속성 영역을 3회 유지하며 적의 행동마다 보호막 1 보충.':'축기를 최대 3까지 채웁니다.'};
  if(isAttack(a.id)){
   let formula;
   if(outer)formula=a.id==='signature'?'위력 + 5 + 제어':a.id==='tempest'?'위력 + 3 + 제어':'위력 + 4 + 제어 + 통찰 × 0.5';

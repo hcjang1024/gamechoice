@@ -49,7 +49,7 @@ test('a recurring learned skill becomes a rank upgrade and stops appearing at ma
 test('manual skills obey path requirements and can be learned and strengthened without synthesis or gold',()=>{
  for(const path of ['inner','outer']){
   let s=hero(path);s.control=1;s.skill=1;assert.ok(!growthPool(s).skills.some(c=>c.ability.id==='chain'||c.ability.id==='mend'));
-  s.control=2;s.skill=2;s.journey.points=2;
+  s.control=2;s.skill=2;s.journey.level=2;s.journey.points=2;
   const gold=s.journey.gold;s=chooseOffer(s,'study-mend');assert.equal(s.journey.gold,gold);assert.ok(s.journey.learned.includes('mend'));s=chooseOffer(s,'hone-mend');assert.equal(s.journey.skillRanks.mend,1);
   assert.ok(!recipesFor(s).some(a=>a.ingredients.includes('mend')||a.ingredients.includes('focus')||a.ingredients.includes('signature')));
   assert.ok(!growthPool(s).skills.some(c=>c.rewardType==='skill'&&c.ability.ingredients));
@@ -99,7 +99,9 @@ test('fusion produces a distinct named skill on both paths and retains the new n
 
 
 test('no category is guaranteed: three skills, three stats or three items can each be offered',()=>{
- const cases=[['skill',2027808452],['stat',2253901550],['item',3041712678]];
+ const cases=[];
+ for(let seed=1;seed<200000&&cases.length<3;seed++){const state=hero();state.journey.growthSeed=Math.imul(seed,2654435761)>>>0;delete state.journey.growthDraft;const choices=growthChoices(state),type=c=>['upgrade','passive','passive-upgrade'].includes(c.rewardType)?'skill':c.rewardType;const key=type(choices[0]);if(choices.every(c=>type(c)===key)&&!cases.some(c=>c[0]===key))cases.push([key,Math.imul(seed,2654435761)>>>0]);}
+ assert.equal(cases.length,3);
  for(const [type,seed]of cases){
   const s=hero();s.journey.growthSeed=seed;delete s.journey.growthDraft;
   const choices=growthChoices(s);assert.equal(choices.length,3);

@@ -1,0 +1,16 @@
+export const skillTypes={attack:'공격',defense:'수비',special:'특별 능력',ultimate:'궁극기'};
+export const typeIds={attack:['weapon','element','chain','infused'],defense:['counter','guard','flow-counter','aegis'],special:['focus','mend','purify','stance'],ultimate:['signature','tempest','detonate','ascend']};
+export const categoryOf=id=>Object.keys(typeIds).find(k=>typeIds[k].includes(id));
+export const skillIds=Object.values(typeIds).flat();
+export function normalizeLoadout(s,known){const seen=new Set();s.loadout=[...new Set(s.loadout||[])].filter(id=>{const type=categoryOf(id);if(!type||seen.has(type)||known&&!known.includes(id))return false;seen.add(type);return true;});return s;}
+export function className(s){return (s.path==='outer'?{맨손:'수인술사',검:'검궤술사',도:'파열술사',창:'술창사',활:'유도술사',지팡이:'결계술사'}:{맨손:'권법가',검:'검객',도:'도객',창:'창술가',활:'궁수',지팡이:'봉술가'})[s.weapon]||'이름 없는 제자';}
+export const skillMeta={weapon:[2,0,1],element:[2,0,1],chain:[3,0,2],infused:[4,0,2],counter:[2,0,1],guard:[1,0,1],'flow-counter':[3,0,2],aegis:[4,0,2],focus:[2,0,1],mend:[3,0,2],purify:[4,3,2],stance:[4,3,2],signature:[5,2,2],tempest:[5,3,3],detonate:[6,3,3],ascend:[7,4,3]};
+export function decorateSkill(s,a){const [cooldown,readyTurn,minLevel]=skillMeta[a.id]||[2,0,1];return {...a,category:categoryOf(a.id),cooldown,readyTurn,minLevel,free:a.id==='stance',uses:['signature','tempest','detonate','ascend'].includes(a.id)?2:['purify','stance'].includes(a.id)?4:null};}
+export function newArts(s){const outer=s.path==='outer';return [
+ {id:'purify',name:outer?'환류 정화':'탁기 배출',cost:1,kind:'정화술',description:'자신의 상태이상을 제거하고, 제거한 중첩마다 보호막 2 획득. 제어 2마다 보호막 +1.'},
+ {id:'stance',name:outer?'술식 조율':'일격 집중',cost:1,kind:'보조 기술',description:'턴 소모 없음 · 다음 내 공격의 위력 +2 + 통찰 × 0.5. 한 턴에 한 번만 사용.'},
+ {id:'detonate',name:outer?'만상 붕괴':'파맥 절기',cost:3,kind:'상태 연계 궁극기',description:'적의 상태이상을 소모해 위력 + 4 + 제어 + 중첩 × 3의 관통 피해. 상태가 많을수록 강해집니다.'},
+ {id:'ascend',name:outer?'천지 공명':'삼화 취정',cost:2,kind:'운용 궁극기',description:outer?'주변 숨을 모두 회복하고 보호막 4 + 제어 획득. 3회 지속하는 속성 영역 전개.':'내부 숨을 모두 회복하고 축기를 3까지 채웁니다. 보호막 4 + 숙련 획득.'}
+ ];}
+const glyphs={weapon:'M12 50 50 12 M17 43 25 51 M42 12 52 10 50 20',element:'M32 8 C7 32 10 52 32 56 C54 52 57 32 32 8Z',chain:'M8 20 29 41 22 48 M30 12 52 34 45 41',infused:'M32 5 37 25 58 32 37 38 32 59 26 38 6 32 26 25Z',counter:'M10 35 A22 22 0 1 1 35 54 M10 35 10 17 M10 35 28 33',guard:'M32 8 51 16 48 39 32 55 16 39 13 16Z',aegis:'M32 8 51 16 48 39 32 55 16 39 13 16Z M32 19V43 M23 31H41','flow-counter':'M10 24 C28 2 52 19 48 39 M48 39 48 22 M48 39 31 36 M17 47 27 55',focus:'M12 46 Q32 60 52 46 M18 34 Q32 43 46 34 M23 22 Q32 28 41 22 M32 7V15',mend:'M24 10H40V24H54V40H40V54H24V40H10V24H24Z',purify:'M32 8V24 M32 40V56 M8 32H24 M40 32H56 M16 16 24 24 M40 40 48 48 M48 16 40 24 M24 40 16 48',stance:'M12 47 25 34 20 26 30 12 44 26 38 34 51 47 M18 51H46',signature:'M8 17 20 28 32 9 44 28 56 17 48 49H16Z',tempest:'M15 16 Q58 8 49 42 Q30 66 14 42 Q3 25 30 22 Q47 25 35 44',detonate:'M32 6 38 23 55 14 45 32 59 43 39 41 32 59 25 41 6 45 18 31 8 14 26 23Z',ascend:'M32 6V18 M32 46V58 M6 32H18 M46 32H58 M14 14 22 22 M42 42 50 50 M50 14 42 22 M22 42 14 50 M32 22 A10 10 0 1 1 31.9 22'};
+export function skillIcon(id){return `<svg viewBox="0 0 64 64" aria-hidden="true"><path d="${glyphs[id]||glyphs.focus}"/></svg>`;}

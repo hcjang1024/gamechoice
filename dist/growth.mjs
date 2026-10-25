@@ -5,7 +5,7 @@ const statNames={control:'제어',skill:'숙련',insight:'통찰'};
 export const MAX_SKILL_RANK=3;
 export function growthPool(s){
  const j=s.journey,known=[...abilities(s),...learnedPassives(s)],knownIds=new Set(known.map(a=>a.id));
- const skills=[...abilityCatalog(s).filter(a=>['weapon','element','counter'].includes(a.id)),...manualsFor(s).filter(a=>!a.stat||s[a.stat]>=a.min),...passiveCatalog(s)];
+ const skills=[...abilityCatalog(s).filter(a=>!a.ingredients&&a.minLevel<=(j.level||1)&&(!a.stat||s[a.stat]>=a.min)),...passiveCatalog(s)];
  for(const a of known)if(!skills.some(k=>k.id===a.id))skills.push(a);
  const skillOffers=skills.filter(a=>!knownIds.has(a.id)||((a.passive?s.passiveRanks?.[a.id]:j.skillRanks[a.id])||0)<MAX_SKILL_RANK).map(a=>{
   const learned=knownIds.has(a.id),rank=(a.passive?s.passiveRanks?.[a.id]:j.skillRanks[a.id])||0;

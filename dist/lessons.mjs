@@ -2,13 +2,13 @@ import {abilities,abilityCatalog} from './combat.mjs';
 import {manualsFor} from './workshop.mjs';
 import {passiveCatalog,learnedPassives} from './passives.mjs';
 import {seeded,sample,hashSeed} from './random.mjs';
-export const lessonLevels={weapon:1,element:1,counter:1,guard:1,focus:1,chain:2,mend:2,'passive-vitality':1,'passive-breath':1,'passive-precision':1,'passive-agility':2,'passive-force':2,'passive-resolve':3};
+export const lessonLevels={weapon:1,element:1,counter:1,guard:1,focus:1,chain:2,mend:2,'passive-vitality':1,'passive-breath':1,'passive-precision':1,'passive-agility':2,'passive-force':2,'passive-resolve':3,'passive-first-ward':1,'passive-circulation':2,'passive-composure':2};
 export function lessonPool(s){
  const j=s.journey;if(!j)return [];
- const known=[...abilities(s),...learnedPassives(s)],catalog=[...abilityCatalog(s).filter(a=>['weapon','element','counter'].includes(a.id)).map(a=>({...a,price:6})),...manualsFor(s),...passiveCatalog(s)];
- return catalog.filter(a=>lessonLevels[a.id]<=(j.level||1)&&(!a.stat||s[a.stat]>=a.min)).flatMap(a=>{
+ const known=[...abilities(s),...learnedPassives(s)],catalog=[...abilityCatalog(s).filter(a=>!a.ingredients).map(a=>({...a,price:a.price||6})),...passiveCatalog(s)];
+ return catalog.filter(a=>(lessonLevels[a.id]||a.minLevel||1)<=(j.level||1)&&(!a.stat||s[a.stat]>=a.min)).flatMap(a=>{
   const learned=known.find(k=>k.id===a.id),rank=learned?.rank||0;if(learned&&rank>=3)return [];
-  return [{...(learned||a),price:(a.price||6)+(learned?rank*3:0),upgrade:!!learned,minLevel:lessonLevels[a.id],requirement:'등급 '+lessonLevels[a.id]+(a.stat?' · '+{control:'제어',skill:'숙련',insight:'통찰'}[a.stat]+' '+a.min:'')}];
+  const level=lessonLevels[a.id]||a.minLevel||1;return [{...(learned||a),price:(a.price||6)+(learned?rank*3:0),upgrade:!!learned,minLevel:level,requirement:'등급 '+level+(a.stat?' · '+{control:'제어',skill:'숙련',insight:'통찰'}[a.stat]+' '+a.min:'')}];
  });
 }
 export function lessonsFor(s){

@@ -7,12 +7,13 @@ import {passiveCatalog,passiveDefinitions,grantPassive,passiveBonus,ensurePassiv
 import {manageBuild} from './dist/management.mjs';
 import {growthPool} from './dist/growth.mjs';
 import {canUseItem} from './dist/workshop.mjs';
-import {withGrowthChoice} from './test-fixtures.mjs';
+import {withGrowthChoice,withLessonChoice} from './test-fixtures.mjs';
 function hero(path='inner'){const h=Object.assign(initial('장착 확인'),{path,weapon:'검',element:'물',control:3,skill:3,insight:2,flags:['art-control'],learnedSkills:['weapon','element','counter'],loadout:['weapon','element']});let s=startJourney(h);s=choose(withGrowthChoice(s,'grow-control'),'grow-control');return s;}
-test('active slots allow three, reject a fourth and sanitize duplicate or unknown battle skills',()=>{
- let s=hero();s=manageBuild(s,'active','counter');assert.equal(s.loadout.length,3);assert.throws(()=>manageBuild(s,'active','signature'));s.loadout=['weapon','weapon','element','counter','signature','unknown'];const b=beginBattle(s);assert.deepEqual(b.loadout,['weapon','element','counter']);assert.throws(()=>manageBuild(hero(),'active','unknown'));
- s=hero();s.loadout=['weapon','element','counter'];s.journey.learned.push('guard');grantAbility(s,'guard');assert.deepEqual(s.loadout,['weapon','element','counter']);
+test('active slots enforce one per category and sanitize duplicate or unknown skills',()=>{
+ let s=hero();s=manageBuild(s,'active','counter');assert.equal(s.loadout.length,2);s=manageBuild(s,'active','signature');assert.equal(s.loadout.length,3);grantAbility(s,'focus');assert.equal(s.loadout.length,4);s=manageBuild(s,'active','element');assert.ok(s.loadout.includes('element'));assert.ok(!s.loadout.includes('weapon'));s.loadout=['weapon','weapon','element','counter','signature','unknown'];const b=beginBattle(s);assert.deepEqual(b.loadout,['weapon','counter','signature']);assert.throws(()=>manageBuild(hero(),'active','unknown'));
+ s=hero();s.loadout=['weapon','counter'];s.journey.learned.push('guard');grantAbility(s,'guard');assert.deepEqual(s.loadout,['weapon','counter']);
 });
+
 test('passive slots are independent from active slots and have their own three-skill limit',()=>{
  let s=hero();const active=[...s.loadout];for(const a of passiveDefinitions.slice(0,4))grantPassive(s,a.id);assert.equal(s.passiveSkills.length,4);assert.equal(s.passiveLoadout.length,3);assert.deepEqual(s.loadout,active);assert.throws(()=>manageBuild(s,'passive',passiveDefinitions[3].id));
  s=manageBuild(s,'passive',passiveDefinitions[0].id);s=manageBuild(s,'passive',passiveDefinitions[3].id);assert.equal(s.passiveLoadout.length,3);assert.ok(s.passiveLoadout.includes(passiveDefinitions[3].id));assert.deepEqual(s.loadout,active);
@@ -39,7 +40,7 @@ test('passive learning and recurring upgrades consume one point and stop at rank
  assert.ok(!growthPool(s).skills.some(c=>c.ability.id==='passive-force'));
 });
 test('passives can be purchased once at school without consuming active slots',()=>{
- let s=hero();s.scene='school';s.journey.gold=20;const active=[...s.loadout];s=choose(s,'learn-passive-vitality');assert.equal(s.journey.gold,12);assert.ok(s.passiveSkills.includes('passive-vitality'));assert.deepEqual(s.loadout,active);assert.throws(()=>choose(s,'learn-passive-vitality'));
+ let s=hero();s.scene='school';s.journey.gold=20;const active=[...s.loadout];s=choose(withLessonChoice(s,'learn-passive-vitality'),'learn-passive-vitality');assert.equal(s.journey.gold,12);assert.ok(s.passiveSkills.includes('passive-vitality'));assert.deepEqual(s.loadout,active);assert.throws(()=>choose(s,'learn-passive-vitality'));
 });
 test('max-resource passives clamp on removal and cannot heal through repeated toggling',()=>{
  let s=hero();grantPassive(s,'passive-vitality');s.hp=maxHp(s);assert.equal(s.hp,13);s=manageBuild(s,'passive','passive-vitality');assert.equal(s.hp,10);s=manageBuild(s,'passive','passive-vitality');assert.equal(s.hp,10);
