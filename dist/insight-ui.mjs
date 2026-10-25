@@ -1,4 +1,5 @@
 import {itemMeta} from './workshop.mjs';
+import {techniqueInsight} from './technique-combat.mjs';
 import {passiveDefinitions,passiveValues,bonusText} from './passives.mjs';
 import {combatStats,abilityCatalog,abilities} from './combat.mjs';
 import {attackPower,attackHits,isAttack,shieldPower,recoveryPower} from './scaling.mjs';
@@ -9,6 +10,7 @@ const pct=x=>n(x*100)+'%';
 export function skillInsight(s,a){
  if(a.passive){const definition=passiveDefinitions.find(p=>p.id===a.id);return {value:definition.trigger||bonusText(passiveValues(definition,a.rank||0)),formula:definition.trigger?'조건 충족 시 발동 · 강화 단계 +'+(a.rank||0):'장착 중 상시 적용',notes:'강화 단계마다 효과가 증가합니다.'};}
  const outer=s.path==='outer',rank=a.rank||0,stats=combatStats(s);
+ if(a.technique)return techniqueInsight(s,a,stats.attack);
  if(a.id==='purify')return {value:'정화 후 보호막 '+(Math.floor(s.control/2)+rank)+' + 제거 중첩 × 2',formula:'제어 ÷ 2 (버림) + 강화 단계 + 제거한 상태 중첩 × 2',notes:'자신의 모든 상태이상을 제거합니다.'};
  if(a.id==='stance')return {value:'다음 공격 위력 +'+n(2+s.insight*.5+rank),formula:'2 + 통찰 × 0.5 + 강화 단계',notes:'턴을 소모하지 않습니다. 기본 공격·공격 기술·준비 주문의 발동에 한 번 적용됩니다.'};
  if(a.id==='detonate')return {value:'위력 '+(stats.attack+4+s.control+rank*2)+' + 소모 중첩 × 3',formula:'전투 위력 + 4 + 제어 + 강화 단계 × 2 + 적 상태 중첩 × 3',notes:'적의 상태이상을 모두 소모합니다. 방어를 무시하며, 명중 보정 +15%p. 치명타는 위력 +2.'};
@@ -55,7 +57,7 @@ export function growthPreview(s,key){
  const before=combatStats(s),after=combatStats({...s,[key]:s[key]+1}),labels={attack:'위력',defense:'방어',speed:'속도',accuracy:'명중',evasion:'회피'};
  const parts=Object.keys(labels).filter(k=>Math.abs(after[k]-before[k])>.00001).map(k=>labels[k]+' '+(k==='accuracy'||k==='evasion'?pct(before[k])+' → '+pct(after[k]):before[k]+' → '+after[k]));
  if(key==='insight'&&.08+s.insight*.015<1)parts.push('치명타 '+pct(Math.min(1,.08+s.insight*.015))+' → '+pct(Math.min(1,.08+(s.insight+1)*.015)));
- for(const a of abilities(s).filter(a=>isAttack(a.id))){const x=attackPower(s,a,before.attack),y=attackPower({...s,[key]:s[key]+1},a,after.attack);if(x!==y)parts.push(a.name+' 첫 위력 '+n(x)+' → '+n(y));}
+ for(const a of abilities(s).filter(a=>a.technique?!!a.technique.power:isAttack(a.id))){const x=attackPower(s,a,before.attack),y=attackPower({...s,[key]:s[key]+1},a,after.attack);if(x!==y)parts.push(a.name+' 첫 위력 '+n(x)+' → '+n(y));}
  return parts.join(' · ')||'이번 1포인트는 다음 상승 구간을 위한 누적입니다.';
 }
 export function growthPanel(s,data){

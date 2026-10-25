@@ -36,13 +36,14 @@ test('shock blocks skills and release without blocking basic defense',()=>{
  const s=duel(hero('outer'));applyStatus(s,'player','shock');assert.ok(battleActions(s).find(a=>a.id==='weapon').disabled);assert.throws(()=>playTurn(s,'weapon'));const next=playTurn(s,'defend');assert.equal(next.battle.statuses.player.shock,undefined);
 });
 test('free actions spend energy once without an enemy turn and cannot be repeated',()=>{
- let s=hero();s.learnedSkills.push('stance');s.loadout=['weapon','counter','stance','signature'];s=duel(s);s.battle.round=3;const turn=s.battle.turn;s=playTurn(s,'stance');assert.equal(s.battle.turn,turn);assert.equal(s.energy,5);assert.equal(s.battle.empower,3.5);assert.equal(s.battle.skillUses.stance,1);assert.throws(()=>playTurn(s,'stance'));s=playTurn(s,'basic');assert.equal(s.battle.empower,0);assert.equal(s.battle.turn,turn+2);
+ let s=hero();s.learnedSkills.push('stance');s.loadout=['weapon','counter','stance','signature'];s=duel(s);s.battle.round=3;const turn=s.battle.turn;s=playTurn(s,'stance');assert.equal(s.battle.turn,turn);assert.equal(s.energy,5);assert.equal(s.battle.empower,6);assert.equal(s.battle.skillUses.stance,1);assert.throws(()=>playTurn(s,'stance'));s=playTurn(s,'basic');assert.equal(s.battle.empower,0);assert.equal(s.battle.turn,turn+2);
 });
 test('ultimate preparation and battle use limits cannot be bypassed',()=>{
  let s=duel(hero());assert.throws(()=>playTurn(s,'signature'));s.battle.round=2;s=playTurn(s,'signature');s.battle.cooldowns.signature=0;s.energy=6;s=playTurn(s,'signature');s.battle.cooldowns.signature=0;s.energy=6;assert.equal(s.battle.skillUses.signature,2);assert.throws(()=>playTurn(s,'signature'));
 });
-test('cleanse converts statuses into shielding; detonation consumes target conditions',()=>{
- let s=hero();s.learnedSkills.push('purify','detonate');s.loadout=['weapon','counter','purify','detonate'];s=duel(s);s.battle.round=3;applyStatus(s,'player','poison');applyStatus(s,'player','bleed');s=playTurn(s,'purify');assert.deepEqual(s.battle.statuses.player,{});assert.ok(s.battle.playerShield>0);applyStatus(s,'enemy','burn');s.energy=6;s=playTurn(s,'detonate');assert.deepEqual(s.battle.statuses.enemy,{});assert.ok(s.battle.enemy.hp<200);
+test('water recovery cleanses harmful conditions and fire attacks consume burn',()=>{
+ let h=hero();h.element='물';h.learnedSkills.push('mend');h.loadout=['mend'];let s=duel(h);s.hp=4;applyStatus(s,'player','poison');applyStatus(s,'player','burn');s=playTurn(s,'mend');assert.deepEqual(s.battle.statuses.player,{});assert.ok(s.hp>4);
+ h=hero();h.learnedSkills.push('chain');h.loadout=['chain'];s=duel(h);applyStatus(s,'enemy','burn',{stacks:3,extend:true});s=playTurn(s,'chain');assert.deepEqual(s.battle.statuses.enemy,{});assert.ok(s.battle.enemy.hp<200);
 });
 test('manual battles survive reload identically and cannot mutate build mid-fight',()=>{
  for(const path of ['inner','outer']){let s=playTurn(duel(hero(path)),'weapon');const restored=migrate(JSON.parse(JSON.stringify(s)));assert.deepEqual(restored,s);assert.deepEqual(playTurn(s,path==='outer'?'release':'breathe'),playTurn(restored,path==='outer'?'release':'breathe'));assert.throws(()=>manageBuild(s,'active','counter'));}

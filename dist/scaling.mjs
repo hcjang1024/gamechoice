@@ -1,6 +1,8 @@
 // Shared by combat resolution and the player-facing explanations.
+import {techniquePower} from './technique-combat.mjs';
 export const isAttack=id=>['weapon','element','signature','chain','infused','tempest'].includes(id);
 export function attackPower(s,a,base,stored=0,hit=0){
+ if(a.technique)return techniquePower(s,a,base)+stored*(a.technique.chargeFactor||2);
  const rank=a.rank||0;
  if(s.path==='outer'){
   const boost=(a.id==='signature'?5+s.control:a.id==='tempest'?3+s.control:4+s.control+s.insight*.5)+rank*1.5;

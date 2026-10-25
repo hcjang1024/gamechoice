@@ -17,7 +17,7 @@ test('같은 무기와 결이라도 무공은 즉시 타격하고 주문은 준�
  const released=own(outer);assert.ok(released.battle.enemy.hp<200);assert.equal(released.battle.pathState.casting,null);assert.equal(released.energy,5);
 });
 test('첫 기술·추가 가르침·조합의 이름과 설명이 길마다 다르다',()=>{
- const inner=hero(),outer=hero('outer');for(const id of ['weapon','element','counter','signature']){const a=abilities(inner).find(a=>a.id===id),b=abilities(outer).find(a=>a.id===id);assert.notEqual(a.name,b.name);assert.notEqual(a.description,b.description);assert.notEqual(a.mode,b.mode);}
+ const inner=hero(),outer=hero('outer');for(const id of ['weapon','element','counter','signature']){const a=abilities(inner).find(a=>a.id===id),b=abilities(outer).find(a=>a.id===id);assert.notEqual(a.name,b.name);assert.notEqual(a.description,b.description);assert.notDeepEqual(a.technique,b.technique);if(a.category==='attack'||a.id==='signature')assert.notEqual(a.mode,b.mode);}
  for(const [a,b] of manualsFor(inner).map((a,i)=>[a,manualsFor(outer)[i]])){assert.notEqual(a.name,b.name);assert.notEqual(a.description,b.description);}
  for(const [a,b] of recipesFor(inner).map((a,i)=>[a,recipesFor(outer)[i]])){assert.notEqual(a.name,b.name);assert.notEqual(a.description,b.description);assert.notDeepEqual(a.labels,b.labels);}
 });
@@ -60,7 +60,7 @@ test('주문 준비와 영역을 저장해도 복원·빠른 진행 결과가 �
  const maintained=own(restored);assert.deepEqual(fastForward(migrate(JSON.parse(JSON.stringify(maintained)))),fastForward(maintained));
 });
 test('이전 저장은 학습과 장착을 유지하며 마법사의 기존 반격 태세는 교란으로 이어진다',()=>{
- const old=duel('outer');old.battle.version=3;old.battle.counter=true;old.battle.counterElement=true;delete old.battle.pathState;const s=migrate(old);assert.deepEqual(s.loadout,old.loadout);assert.deepEqual(s.learnedSkills,old.learnedSkills);assert.equal(ensurePathState(s).mode,'outer');assert.ok(abilities(s).every(a=>a.mode!=='instant'));assert.equal(s.battle.counter,false);assert.equal(s.battle.enemy.disrupted,2);
+ const old=duel('outer');old.battle.version=3;old.battle.counter=true;old.battle.counterElement=true;delete old.battle.pathState;const s=migrate(old);assert.deepEqual(s.loadout,old.loadout);assert.deepEqual(s.learnedSkills,old.learnedSkills);assert.equal(ensurePathState(s).mode,'outer');assert.ok(abilities(s).filter(a=>a.category==='attack').every(a=>a.mode==='cast'));assert.equal(s.battle.counter,false);assert.equal(s.battle.enemy.disrupted,2);
 });
 test('길별 조합 목록은 가능한 조합을 잠긴 목록에 중복 표시하지 않는다',()=>{
  for(const path of ['inner','outer']){const s=choose(startJourney(hero(path)),'grow-control');s.scene='synthesis';const html=marketPanel(s);for(const id of ['infused','flow-counter','aegis','tempest'])assert.equal(html.split('data-choice="combine-'+id+'"').length-1,1);}

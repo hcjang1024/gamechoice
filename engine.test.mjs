@@ -12,7 +12,7 @@ test('84가지 길·결·무기 조합이 실제 전투와 첫 깨달음까지 �
  for(const path of ['inner','outer'])for(let e=0;e<elements.length;e++)for(let w=0;w<weapons.length;w++){
   let s=fastForward(battle(prepared(path,e,w)));assert.ok(['victory','defeat','retreat'].includes(s.battle.outcome));assert.ok(s.battle.log.length>3);
   s=choose(s,'continue');s=choose(s,'child');s=choose(s,'resolve-control');
-  assert.equal(s.scene,'ending');assert.ok(art(s).includes(elements[e]));assert.equal(s.path,path);assert.equal(s.weapon,weapons[w]);assert.ok(s.hp>0&&s.energy>=0);count++;
+  assert.equal(s.scene,'ending');assert.equal(art(s),abilities(s).find(a=>a.id==='signature').name);assert.equal(s.path,path);assert.equal(s.weapon,weapons[w]);assert.ok(s.hp>0&&s.energy>=0);count++;
  }
  assert.equal(count,84);
 });

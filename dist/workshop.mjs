@@ -1,3 +1,4 @@
+import {techniqueCatalog} from './techniques.mjs';
 import {passiveBonus} from './passives.mjs';
 import {adaptArt} from './paths.mjs';
 const baseItems=[
@@ -46,7 +47,7 @@ export const recipes=[
  {id:'aegis',name:'결의 수호',ingredients:['guard','element'],labels:['기초 수비','결의 기술'],gold:8,ore:1,cost:2,kind:'조합 방어',description:'보호막 5'},
  {id:'tempest',name:'연쇄 파동',ingredients:['chain','infused'],labels:['연속격','결을 실은 일격'],gold:16,ore:2,cost:4,kind:'상위 조합',description:'세 번 이어지는 결의 타격 · 세 번째는 절반 위력'}
 ];
-export const manualsFor=s=>manuals.map(a=>adaptArt(s,a));
-export const recipesFor=s=>recipes.map(a=>adaptArt(s,a));
+export const manualsFor=s=>manuals.map(a=>({...a,...techniqueCatalog(s).find(k=>k.id===a.id),price:a.price,stat:a.stat,min:a.min}));
+export const recipesFor=s=>recipes.map(a=>({...a,...techniqueCatalog(s).find(k=>k.id===a.id),ingredients:a.ingredients,labels:a.ingredients.map(id=>techniqueCatalog(s).find(k=>k.id===id)?.name||id)}));
 export function extraArts(s){return [...manuals,...recipes].filter(a=>s.journey?.learned?.includes(a.id)).map(a=>({...a,name:recipes.includes(a)?`${s.element}결 · ${a.name}`:a.name}));}
 export function canUseItem(s,item){if(!s.journey||!item||item.type!=='consumable'||itemCount(s.journey,item.id)<1)return false;if(item.heal)return s.hp<10+(s.journey.level-1)*2+equipmentBonus(s).hp+passiveBonus(s).hp;if(item.energy)return s.energy<6+Math.floor((s.journey.level-1)/2)+equipmentBonus(s).energy+passiveBonus(s).energy;return !s.journey.prepBuffs?.[item.buff];}

@@ -15,9 +15,9 @@ export function ensureStatuses(b){
  b.enemy.burn=0;
 }
 export const statusFor=(s,side,id)=>s.battle?.statuses?.[side]?.[id]?.turns>0?s.battle.statuses[side][id]:null;
-export function applyStatus(s,side,id){
+export function applyStatus(s,side,id,options={}){
  ensureStatuses(s.battle);const r=statusRules[id];if(!r)throw Error('알 수 없는 상태이상');
- const current=statusFor(s,side,id),stacks=id==='corrosion'?Math.min(2,(current?.stacks||0)+1):1;
+ const current=statusFor(s,side,id),caps={burn:4,bleed:4,poison:3,chill:3,corrosion:3,unsteady:3,shock:1},stacks=options.extend?Math.min(caps[id],(current?.stacks||0)+(options.stacks||1)):id==='corrosion'?Math.max(current?.stacks||0,Math.min(2,(current?.stacks||0)+1)):current?.stacks||1;
  s.battle.statuses[side][id]={turns:Math.max(current?.turns||0,r.duration),stacks};
  return r;
 }
