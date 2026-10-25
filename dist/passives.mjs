@@ -1,3 +1,4 @@
+import {advancedPowers,abilityEvolutionOptions} from './advanced-powers.mjs';
 export const ACTIVE_LIMIT=4;
 export const PASSIVE_LIMIT=3;
 export const passiveDefinitions=[
@@ -9,7 +10,10 @@ export const passiveDefinitions=[
  {id:'passive-agility',name:'가벼운 발걸음',price:8,base:{speed:1,evasion:.02},step:{speed:1,evasion:.01}},
  {id:'passive-first-ward',name:'첫 숨의 보호',price:10,base:{},step:{},trigger:'전투 시작 시 보호막 3. 강화마다 +1.'},
  {id:'passive-circulation',name:'삼박 순환',price:10,base:{},step:{},trigger:'내 행동을 3번 마칠 때마다 숨 1 회복. 강화마다 +1.'},
- {id:'passive-composure',name:'고요한 재생',price:12,base:{},step:{},trigger:'기본 방어를 선택하면 체력 1 회복. 강화마다 +1. 중독의 영향을 받습니다.'}
+ {id:'passive-composure',name:'고요한 재생',price:12,base:{},step:{},trigger:'기본 방어를 선택하면 체력 1 회복. 강화마다 +1. 중독의 영향을 받습니다.'},
+ {id:'ability-concentration',name:'몰입',price:12,base:{},step:{},trigger:'내 행동마다 치명타 확률을 누적합니다. 강화하면 증가량과 최대치가 상승합니다.'},
+ {id:'ability-absorption',name:'흡수',price:12,base:{},step:{},trigger:'내 턴에 직접 타격 피해를 주면 체력 1 회복. 턴당 한 번. 강화마다 회복 +1.'},
+ ...advancedPowers.map(a=>({id:a.id,name:a.name,price:10,base:{},step:{},trigger:'Lv.1~7로 성장하며, 7레벨에서 세 진화 중 하나를 선택합니다.'}))
 ];
 export const isPassive=id=>passiveDefinitions.some(a=>a.id===id);
 const labels={hp:'최대 체력',energy:'최대 숨',attack:'위력',defense:'방어',accuracy:'명중',speed:'속도',evasion:'회피'};
@@ -19,7 +23,8 @@ export function passiveCatalog(s){return passiveDefinitions.map(a=>{const rank=s
 export const learnedPassives=s=>passiveCatalog(s).filter(a=>s.passiveSkills?.includes(a.id));
 export function ensurePassives(s){
  s.passiveSkills=[...new Set((s.passiveSkills||[]).filter(isPassive))];s.passiveRanks??={};
- for(const id of s.passiveSkills)s.passiveRanks[id]=Math.max(0,Math.min(3,Math.floor(Number(s.passiveRanks[id])||0)));
+ for(const id of s.passiveSkills)s.passiveRanks[id]=Math.max(0,Math.min(6,Math.floor(Number(s.passiveRanks[id])||0)));
+ s.powerEvolutions=Object.fromEntries(Object.entries(s.powerEvolutions||{}).filter(([id,value])=>(id==='core-breath'||isPassive(id))&&abilityEvolutionOptions(id).some(e=>e.id===value)));
  s.passiveLoadout=[...new Set((s.passiveLoadout||[]).filter(id=>s.passiveSkills.includes(id)))].slice(0,PASSIVE_LIMIT);
  return s;
 }
@@ -27,8 +32,8 @@ export function grantPassive(s,id){if(!isPassive(id))throw Error('알 수 없는
 export function passiveBonus(s){
  const total={hp:0,energy:0,attack:0,defense:0,accuracy:0,speed:0,evasion:0};
  for(const id of [...new Set(s.passiveLoadout||[])].slice(0,PASSIVE_LIMIT)){
-  if(!s.passiveSkills?.includes(id))continue;const a=passiveDefinitions.find(a=>a.id===id);if(!a)continue;
-  for(const [key,value]of Object.entries(passiveValues(a,Math.max(0,Math.min(3,s.passiveRanks?.[id]||0)))))total[key]+=value;
+  if(!s.passiveSkills?.includes(id)||s.powerEvolutions?.[id])continue;const a=passiveDefinitions.find(a=>a.id===id);if(!a)continue;
+  for(const [key,value]of Object.entries(passiveValues(a,Math.max(0,Math.min(6,s.passiveRanks?.[id]||0)))))total[key]+=value;
  }
  return total;
 }

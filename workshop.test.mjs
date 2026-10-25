@@ -7,8 +7,8 @@ import {abilities,combatStats,maxHp,maxEnergy,tickBattle,beginBattle,fastForward
 import {items,itemCount} from './dist/workshop.mjs';
 function hero(stop=0){const base=initial('가람');Object.assign(base,{path:'inner',weapon:'검',element:'물',control:2,skill:2,insight:2,flags:['art-control'],learnedSkills:['weapon','element','counter'],loadout:['weapon','element']});const s=choose(startJourney(base),'hone-counter');s.journey.gold=200;s.journey.ore=20;s.journey.route.used=stop;return s;}
 const act=(s,...ids)=>ids.reduce((x,id)=>{while(x.scene==='growth'&&x.journey.points&&!/^(grow-|study-|hone-)/.test(id))x=choose(x,'grow-insight');return choose(x,id);},s);
-test('상점의 장비 7종과 소모품 6종은 실제 구입 가능하고 지출을 기록한다',()=>{
- let s=act(hero(),'node-shop');assert.equal(items.filter(i=>i.grade==='common'&&i.type==='equipment').length,7);assert.equal(items.filter(i=>i.grade==='common'&&i.type==='consumable').length,6);
+test('상점의 장비 7종과 소모품 7종은 실제 구입 가능하고 지출을 기록한다',()=>{
+ let s=act(hero(),'node-shop');assert.equal(items.filter(i=>i.grade==='common'&&i.type==='equipment').length,7);assert.equal(items.filter(i=>i.grade==='common'&&i.type==='consumable').length,7);
  s=choose(s,'buy-item-bracer');assert.equal(s.journey.gold,190);assert.equal(itemCount(s.journey,'bracer'),1);assert.throws(()=>choose(s,'buy-item-bracer'));
  s=choose(s,'buy-item-herb');assert.equal(s.journey.herbs,3);s.journey.gold=0;assert.throws(()=>choose(s,'buy-item-breath'));
 });

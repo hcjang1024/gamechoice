@@ -10,7 +10,7 @@ test('every growth choice appears once outside collapsible sections',()=>{
  for(const path of ['inner','outer']){const s=startJourney(hero(path)),data=scene(s),html=growthPanel(s,data);for(const c of data.choices)assert.equal(html.split('data-choice="'+c.id+'"').length-1,1);assert.equal((html.match(/<article class="growth-card/g)||[]).length,3);assert.ok(html.includes('세 보상 중'));}
 });
 test('stat preview observes breakpoints, caps and path-specific power',()=>{
- const s=hero();assert.match(growthPreview(s,'skill'),/위력 5 → 6/);assert.ok(!growthPreview(s,'control').includes('방어'));s.control=5;assert.match(growthPreview(s,'control'),/방어 2 → 3/);s.skill=100;s.insight=100;assert.ok(!growthPreview(s,'skill').includes('명중'));assert.ok(!growthPreview(s,'insight').includes('회피'));assert.match(statGuide(s,true),/치명타 100%/);
+ const s=hero();assert.match(growthPreview(s,'skill'),/위력 5 → 6/);assert.ok(!growthPreview(s,'control').includes('방어'));s.control=5;assert.match(growthPreview(s,'control'),/방어 2 → 3/);s.skill=100;s.insight=100;assert.ok(!growthPreview(s,'skill').includes('명중'));assert.ok(!growthPreview(s,'insight').includes('회피'));assert.match(statGuide(s,true),/치명타율<\/strong><b>60%/);
  const outer=hero('outer');outer.control=3;assert.match(growthPreview(outer,'control'),/위력 4 → 5/);
 });
 test('skill explanations follow real attack coefficients across weapons and paths',()=>{

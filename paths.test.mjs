@@ -23,7 +23,7 @@ test('첫 기술·추가 가르침·조합의 이름과 설명이 길마다 다�
 });
 test('축기는 기본 동작으로 최대 세 개 쌓이며 무공에 모두 방출된다',()=>{
  let s=duel('inner',[]);for(let i=0;i<5;i++){s.battle.round=1;s=own(s);}assert.equal(s.battle.pathState.vigor,3);
- s.loadout=['weapon'];const base=duel();base.battle.round=1;const clean=own(base);s.battle.enemy.hp=200;s=own(s);assert.equal(s.battle.pathState.vigor,0);assert.equal(s.battle.pathState.release,3);assert.equal(clean.battle.enemy.hp-s.battle.enemy.hp,6);
+ s.loadout=['weapon'];const base=duel();base.battle.round=1;const clean=own(base);s.battle.enemy.hp=200;s=own(s);assert.equal(s.battle.pathState.vigor,0);assert.equal(s.battle.pathState.release,3);assert.equal(clean.battle.enemy.hp-s.battle.enemy.hp,9);
 });
 test('호신 무공은 축기로 보호막과 반격을 강화한다',()=>{
  let s=duel('inner',['counter']);s.hp=3;s.battle.pathState.vigor=3;s=own(s);assert.equal(s.battle.playerShield,5);assert.equal(s.battle.counter,true);assert.equal(s.battle.counterPower,3);assert.equal(s.battle.pathState.vigor,0);

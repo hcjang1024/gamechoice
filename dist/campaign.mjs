@@ -16,11 +16,11 @@ export const campaignFor=s=>(s.journey?.chapter||1)===2?{
 export const secondEvents={
  'city-ledger':{title:'장터에 남은 장부 한 장',text:['약재상이 빈 수레 옆에서 찢어진 장부를 맞추고 있었다. 밀서를 숨긴 품을 본 그는 목소리를 낮췄다. “산문 앞에 낯선 사람들이 서성여. 이 끈을 봤다면 조심하게.”'],choices:[
   {id:'copy',title:'남은 장부에서 낯선 이름을 찾아본다',effects:{insight:1,xp:3},result:'수레가 드나든 시간을 읽었다. · 통찰 +1, 경험 +3'},
-  {id:'carry',title:'약재상의 짐을 안전한 곳까지 옮긴다',effects:{hp:-2,gold:10,ore:1},result:'무거운 짐을 옮기고 품삯을 받았다. · 체력 -2, 엽전 +10, 강화석 +1'},
+  {id:'carry',title:'약재상의 짐을 안전한 곳까지 옮긴다',effects:{hp:-2,gold:10,ore:1},result:'무거운 짐을 옮기고 품삯을 받았다. · 체력 -2, 코인 +10, 강화석 +1'},
   {id:'medicine',title:'다친 행상에게 남는 물자가 있는지 묻는다',effects:{herbs:1,tonic:1},result:'남은 보급품을 나누어 받았다. · 약초 +1, 응급 회복탕 +1'}]},
  watermarks:{title:'덧붙인 인장',text:['수로의 돌기둥에 청운문의 표식이 어긋나 있었다. 그 위에 다른 종이가 덧붙어 물의 흐름을 잡아당겼다. 힘으로 뜯을 수도, 연결된 자국을 살필 수도 있다.'],choices:[
   {id:'trace',title:'숨을 보내 덧붙인 종이의 연결을 읽는다',effects:{energy:-2,intel:'cut-seal'},result:'보호막으로 이어지는 가짜 인장의 연결을 읽었다. · 숨 -2, 보스 보호막과 재생 약화'},
-  {id:'retrieve',title:'돌틈으로 내려가 떨어진 금속 조각을 줍는다',effects:{hp:-3,gold:8,ore:2},result:'돌틈에서 술식의 재료를 건졌다. · 체력 -3, 엽전 +8, 강화석 +2'},
+  {id:'retrieve',title:'돌틈으로 내려가 떨어진 금속 조각을 줍는다',effects:{hp:-3,gold:8,ore:2},result:'돌틈에서 술식의 재료를 건졌다. · 체력 -3, 코인 +8, 강화석 +2'},
   {id:'follow',title:'흐트러진 물소리에 호흡을 맞춘다',effects:{control:1,xp:3},result:'낯선 흐름을 다스리는 감각을 익혔다. · 제어 +1, 경험 +3'}]},
  'isol-watch':{title:'밤을 나누어 지키는 법',text:['이솔이 등불을 낮추고 수문 쪽을 바라보았다. 물이 흐르는 소리 사이로 종이가 스치는 소리가 섞였다. 경계를 나눌지, 잠깐 쉬어 갈지 정해야 했다.'],choices:[
   {id:'together',title:'이솔과 번갈아 주변의 움직임을 살핀다',effects:{intel:'shared-watch',relation:'shared-watch'},result:'이솔과 주문이 모이는 순간을 알아냈다. · 함께 경계한 기록, 보스 주문 추가 위력 -1'},

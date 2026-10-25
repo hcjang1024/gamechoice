@@ -1,3 +1,4 @@
+import {combatAttribute} from './attributes.mjs';
 // Authored weapon actions, path operation, and element-specific interactions.
 // These three layers form 84 distinct, sixteen-technique loadout catalogs.
 const P=(ratio=1,stat='skill',factor=.5,flat=2)=>({ratio,stat,factor,flat});
@@ -119,12 +120,12 @@ export function techniqueCatalog(s){
   return {id:ids[index],name,category,kind:labels[category],cost,cooldown:category==='ultimate'?5:base.free?4:category==='special'?3:2,readyTurn:category==='ultimate'?2:0,minLevel:category==='ultimate'?3:['chain','mend'].includes(ids[index])?2:index%4<2?1:2,uses:category==='ultimate'?2:base.free?4:null,free:!!base.free,rank,mode:path.cast?'cast':'instant',technique:spec,description:describeTechnique(s,spec),...({chain:{stat:s.path==='outer'?'control':'skill',min:2},mend:{stat:'control',min:2},infused:{ingredients:['weapon','element'],labels:['무기 기술','결의 기술']},'flow-counter':{ingredients:['element','counter'],labels:['결의 기술','반격']},aegis:{ingredients:['guard','element'],labels:['수비','결의 기술']},tempest:{ingredients:['chain','infused'],labels:['연속격','합격']}}[ids[index]]||{})};
  });
 }
-export function scalar(s,a,value){if(typeof value==='number')return value;const v=value||{};return (v.ratio||0)*(a.baseAttack||0)+(s[v.stat]||0)*(v.factor||0)+(v.flat||0);}
-const statNames={skill:'숙련',control:'제어',insight:'통찰'};
+export function scalar(s,a,value){if(typeof value==='number')return value;const v=value||{};return (v.ratio||0)*(a.baseAttack||0)+combatAttribute(s,v.stat)*(v.factor||0)+(v.flat||0);}
+const statNames={skill:'근력',control:'지능',insight:'민첩'};
 export function powerFormula(p){return [p.ratio?'전투 위력 × '+p.ratio:'',p.factor?statNames[p.stat]+' × '+p.factor:'',p.flat?String(p.flat):'','강화 × 1.5'].filter(Boolean).join(' + ');}
 const statusNames={chill:'냉기',burn:'화상',corrosion:'부식',unsteady:'흔들림',poison:'중독',bleed:'출혈',shock:'감전'};
 export function describeTechnique(s,spec){
- const ops=spec.ops.map(o=>{const v=o.value+(['shield','heal','energy','counter','empower'].includes(o.kind)?spec.rank||0:0),n=statusNames[o.status]||'모든 상태',side=o.side==='player'?'자신':'적';switch(o.kind){
+ const ops=spec.ops.map(o=>{const v=o.value+(['shield','heal','energy','counter','empower'].includes(o.kind)?spec.rank||0:0)+(o.kind==='heal'?Math.floor(combatAttribute(s,'charisma')/10):0),n=statusNames[o.status]||'모든 상태',side=o.side==='player'?'자신':'적';switch(o.kind){
   case 'status':return side+' '+n+' '+v+'중첩';case 'shield':return '보호막 +'+v;case 'heal':return '체력 +'+v;case 'energy':return '숨 +'+v;case 'renew':return '3회 유지 회복 '+v;case 'counter':return '반격 위력에 +'+v;case 'counterStatus':return '반격 적중 시 '+n+' '+v+'중첩';case 'disrupt':return '강타·주문 교란 '+v+'회';case 'stun':return '적 경직 '+v+'회';case 'mark':return '추적 표식 +'+v;case 'consumeMark':return '표식 소모 · 중첩당 위력 +'+v;case 'consume':return side+' '+n+' 소모 · 중첩당 위력 +'+v;case 'convert':return side+' '+n+' 소모 · 중첩당 '+({shield:'보호막',heal:'회복',energy:'숨'}[o.into])+' +'+v;case 'transfer':return '자신의 '+n+'을 '+v+'배로 적에게 이전';case 'buff':return ({attack:'위력',defense:'방어',accuracy:'명중',evasion:'회피'}[o.stat])+' '+(v>0?'+':'')+(Math.abs(v)<1?Math.round(v*100)+'%p':v)+' · '+o.turns+'회';case 'empower':return '다음 공격 위력 +'+v;case 'shieldBreak':return '적 보호막 -'+v;case 'selfDamage':return '자신의 체력 -'+v;case 'missingPower':return '잃은 체력 × '+v+' 추가 위력';case 'missingEnemyPower':return '적이 잃은 체력 × '+v+' 추가 위력';case 'shieldToPower':return '보호막을 모두 소모 · 소모량 × '+v+' 추가 위력';case 'cleanse':return (o.statuses?o.statuses.map(x=>statusNames[x]).join('·'):'모든 상태이상')+' 정화';case 'drain':return '실제 타격 피해 '+Math.round(v*100)+'% 회복';case 'charge':return s.path==='inner'?'축기 +'+v:'';case 'resonance':return '공명 +'+v+' (최대 3)';case 'field':return (o.element||s.element)+' 영역 '+v+'회'+(o.ward?' · 보호막 보충':'');default:throw Error('Unknown technique operation '+o.kind);
  }}).filter(Boolean);
  return [spec.power?'타격 '+(spec.hits||1)+'회'+(spec.pierce?' · 방어 관통':''):'',spec.cast?'주문 준비 후 직접 발동':'즉시 발동',spec.spendCharge?'축기 소모 · '+(spec.chargeInto==='shield'?'보호막':'위력')+' 강화':'',spec.spendResonance?'공명 소모 · 중첩당 위력 +3':'',...ops].filter(Boolean).join(' / ');

@@ -3,6 +3,7 @@ import {passiveBonus} from './passives.mjs';
 import {adaptArt} from './paths.mjs';
 const baseItems=[
  {id:'herb',name:'약초 꾸러미',type:'consumable',price:3,icon:'葉',description:'체력 6 회복',heal:6},
+ {id:'meal',name:'산나물 주먹밥',type:'consumable',price:4,icon:'飯',description:'식품 · 체력 8 회복',heal:8},
  {id:'tonic',name:'응급 회복탕',type:'consumable',price:6,icon:'湯',description:'체력 10 회복',heal:10},
  {id:'breath',name:'청숨환',type:'consumable',price:4,icon:'息',description:'숨 4 회복',energy:4},
  {id:'oil',name:'결을 잇는 도구유',type:'consumable',price:5,icon:'刃',description:'다음 전투 위력 +2',buff:'attack',amount:2},
@@ -16,19 +17,19 @@ const baseItems=[
  {id:'charm',name:'숨결 부적',type:'equipment',slot:'charm',price:12,icon:'符',description:'최대 숨 +2',bonus:{energy:2}},
  {id:'mirror',name:'청동 거울패',type:'equipment',slot:'charm',price:14,icon:'鏡',description:'방어 +1 · 회피율 +4%',bonus:{defense:1,evasion:.04}}
 ];
-export const grades={common:{name:'일반',minLevel:1},refined:{name:'정제',minLevel:2},rare:{name:'희귀',minLevel:3}};
+export const grades={common:{name:'흔함',minLevel:1},refined:{name:'드묾',minLevel:2},rare:{name:'귀함',minLevel:3},epic:{name:'영웅',minLevel:4},legendary:{name:'전설',minLevel:5},mythic:{name:'신화',minLevel:6}};
 const bonusLabels={attack:'위력',defense:'방어',speed:'속도',accuracy:'명중',evasion:'회피',hp:'최대 체력',energy:'최대 숨'};
 const bonusDescription=bonus=>Object.entries(bonus).map(([k,v])=>bonusLabels[k]+' +'+(['accuracy','evasion'].includes(k)?Number((v*100).toFixed(2))+'%p':v)).join(' · ');
 const rareExtras={bracer:{accuracy:.04},gloves:{attack:1},rune:{energy:1},boots:{defense:1},robe:{evasion:.04},charm:{defense:1},mirror:{hp:2}};
 export const items=Object.entries(grades).flatMap(([grade,info],tier)=>baseItems.map(base=>{
  const item={...base,id:base.id+(tier?'-'+grade:''),baseId:base.id,grade,minLevel:info.minLevel,name:(tier?info.name+' ':'')+base.name,price:Math.ceil(base.price*(1+tier*.8))};
- if(base.bonus){item.bonus=Object.fromEntries(Object.entries(base.bonus).map(([k,v])=>[k,Number((v+tier*(['accuracy','evasion'].includes(k)?.02:k==='hp'?2:1)).toFixed(4))]));if(tier===2)for(const[k,v]of Object.entries(rareExtras[base.id]||{}))item.bonus[k]=Number(((item.bonus[k]||0)+v).toFixed(4));item.description=bonusDescription(item.bonus);}
+ if(base.bonus){item.bonus=Object.fromEntries(Object.entries(base.bonus).map(([k,v])=>[k,Number((v+tier*(['accuracy','evasion'].includes(k)?.02:k==='hp'?2:1)).toFixed(4))]));if(tier>=2)for(const[k,v]of Object.entries(rareExtras[base.id]||{}))item.bonus[k]=Number(((item.bonus[k]||0)+v).toFixed(4));item.description=bonusDescription(item.bonus);}
  else if(base.heal){item.heal=base.heal+tier*3;item.description='체력 '+item.heal+' 회복';}
  else if(base.energy){item.energy=base.energy+tier;item.description='숨 '+item.energy+' 회복';}
  else if(base.buff){item.amount=base.amount+tier*(base.buff==='shield'?2:1);item.description='다음 전투 '+({attack:'위력',shield:'시작 보호막',speed:'속도'}[base.buff])+' +'+item.amount;}
  return item;
 }));
-export const shopItems=s=>{const tier=Math.min(3,Math.max(1,s.journey?.level||1));return items.filter(i=>i.grade==='common'||tier>1&&i.minLevel===tier);};
+export const shopItems=s=>{const tier=Math.min(6,Math.max(1,s.journey?.level||1));return items.filter(i=>i.grade==='common'||tier>1&&i.minLevel===tier);};
 export const itemMeta=i=>grades[i.grade||'common'].name+' · '+(i.type==='equipment'?slots[i.slot]:'소모품');
 export const slots={hands:'손 / 매개',feet:'발',body:'몸',charm:'장신구'};
 export const itemFor=id=>items.find(x=>x.id===id);
@@ -50,4 +51,4 @@ export const recipes=[
 export const manualsFor=s=>manuals.map(a=>({...a,...techniqueCatalog(s).find(k=>k.id===a.id),price:a.price,stat:a.stat,min:a.min}));
 export const recipesFor=s=>recipes.map(a=>({...a,...techniqueCatalog(s).find(k=>k.id===a.id),ingredients:a.ingredients,labels:a.ingredients.map(id=>techniqueCatalog(s).find(k=>k.id===id)?.name||id)}));
 export function extraArts(s){return [...manuals,...recipes].filter(a=>s.journey?.learned?.includes(a.id)).map(a=>({...a,name:recipes.includes(a)?`${s.element}결 · ${a.name}`:a.name}));}
-export function canUseItem(s,item){if(!s.journey||!item||item.type!=='consumable'||itemCount(s.journey,item.id)<1)return false;if(item.heal)return s.hp<10+(s.journey.level-1)*2+equipmentBonus(s).hp+passiveBonus(s).hp;if(item.energy)return s.energy<6+Math.floor((s.journey.level-1)/2)+equipmentBonus(s).energy+passiveBonus(s).energy;return !s.journey.prepBuffs?.[item.buff];}
+export function canUseItem(s,item){if(!s.journey||!item||item.type!=='consumable'||itemCount(s.journey,item.id)<1)return false;if(item.heal)return s.hp<Math.min(999,10+(s.journey.level-1)*2+(s.healthBonus||0)+equipmentBonus(s).hp+passiveBonus(s).hp);if(item.energy)return s.energy<6+Math.floor((s.journey.level-1)/2)+equipmentBonus(s).energy+passiveBonus(s).energy;return !s.journey.prepBuffs?.[item.buff];}

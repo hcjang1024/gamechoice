@@ -1,3 +1,4 @@
+import {resistanceFor} from './attributes.mjs';
 export const statusRules={
  chill:{name:'냉기',element:'물',duration:2,description:'공격 위력 1 감소'},
  burn:{name:'화상',element:'불',duration:2,description:'행동 시작마다 보호막을 무시하고 체력 1 감소'},
@@ -17,10 +18,11 @@ export function ensureStatuses(b){
 export const statusFor=(s,side,id)=>s.battle?.statuses?.[side]?.[id]?.turns>0?s.battle.statuses[side][id]:null;
 export function applyStatus(s,side,id,options={}){
  ensureStatuses(s.battle);const r=statusRules[id];if(!r)throw Error('알 수 없는 상태이상');
+ const resistance=side==='player'?resistanceFor(s,id):s.battle.enemy.resistances?.[id]||0;if(resistance>0){let n=s.battle.seed;n^=n<<13;n^=n>>>17;n^=n<<5;s.battle.seed=n>>>0;if(s.battle.seed/4294967296<resistance)return {...r,resisted:true};}
  const current=statusFor(s,side,id),caps={burn:4,bleed:4,poison:3,chill:3,corrosion:3,unsteady:3,shock:1},stacks=options.extend?Math.min(caps[id],(current?.stacks||0)+(options.stacks||1)):id==='corrosion'?Math.max(current?.stacks||0,Math.min(2,(current?.stacks||0)+1)):current?.stacks||1;
  s.battle.statuses[side][id]={turns:Math.max(current?.turns||0,r.duration),stacks};
  return r;
 }
 export function activeStatuses(s,side){return Object.entries(s.battle?.statuses?.[side]||{}).filter(([,v])=>v.turns>0).map(([id,v])=>({id,...statusRules[id],...v}));}
-export function statusModifiers(s,side){return {attack:(statusFor(s,side,'chill')?1:0)+(statusFor(s,side,'poison')?1:0),defense:statusFor(s,side,'corrosion')?.stacks||0,accuracy:statusFor(s,side,'unsteady')?.15:0,healing:statusFor(s,side,'poison')?.5:1,recovery:statusFor(s,side,'poison')?1:0,skillLocked:!!statusFor(s,side,'shock')};}
+export function statusModifiers(s,side){return {attack:(statusFor(s,side,'chill')?1:0)+(statusFor(s,side,'poison')?1:0),defense:statusFor(s,side,'corrosion')?.stacks||0,accuracy:statusFor(s,side,'unsteady')?.15:0,healing:statusFor(s,side,'poison')?.5:1,recovery:statusFor(s,side,'poison')?1:0,skillLocked:!!statusFor(s,side,'shock')&&!(side==='player'&&s.battle.abilityState?.unstoppable>0)};}
 export function decayStatuses(s,side){for(const [id,v] of Object.entries(s.battle.statuses[side])){v.turns--;if(v.turns<=0)delete s.battle.statuses[side][id];}}

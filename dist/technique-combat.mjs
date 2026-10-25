@@ -1,7 +1,8 @@
+import {combatAttribute} from './attributes.mjs';
 import {scalar,powerFormula,describeTechnique} from './techniques.mjs';
 import {applyStatus,statusFor,statusRules,statusModifiers} from './statuses.mjs';
 const scalable=new Set(['shield','heal','energy','counter','empower']);
-export const operationValue=(a,o)=>o.value+(scalable.has(o.kind)?a.rank||0:0);
+export const operationValue=(a,o,s)=>o.value+(scalable.has(o.kind)?a.rank||0:0)+(o.kind==='heal'&&s?Math.floor(combatAttribute(s,'charisma')/10):0);
 export function techniquePower(s,a,base){return scalar(s,{baseAttack:base},a.technique.power)+(a.rank||0)*1.5;}
 export function techniqueBuffs(s){const out={attack:0,defense:0,accuracy:0,evasion:0};for(const b of s.battle?.techniqueState?.buffs||[])if(b.turns>0)out[b.stat]+=b.value;return out;}
 export function ensureTechniqueState(s){return s.battle.techniqueState??={buffs:[],mark:0,markTurns:0,regen:[],resonance:0};}
@@ -13,12 +14,12 @@ export function executeTechnique(s,a,api,{release=false}={}){
  if(spec.cast&&!release){s.energy-=a.cost;p.casting={id:a.id,name:a.name,cost:a.cost};t.resonance=Math.min(3,t.resonance+1);api.emit(s,'cast','player','player',a.name+' 준비');api.log(s,'player',a.name+' 준비 · 다음 내 턴에 발동 가능 · 공명 '+t.resonance+'/3');return;}
  if(!release)s.energy-=a.cost;
  b.cooldowns[a.id]=a.cooldown;
- let power=spec.power?techniquePower(s,a,b.stats.attack+techniqueBuffs(s).attack):0;
- if(spec.spendCharge&&s.path==='inner'){const charge=p.vigor||0;p.vigor=0;if(spec.chargeInto==='shield'){b.playerShield+=charge*2;notes.push('축기 '+charge+' → 보호막 '+charge*2);}else{power+=charge*(spec.chargeFactor||2);notes.push('축기 '+charge+' 방출');}}
- if(spec.spendResonance){power+=t.resonance*3;notes.push('공명 '+t.resonance+' 소모');t.resonance=0;}
+ let power=spec.power?techniquePower(s,a,api.effectiveStats(s).attack+statusModifiers(s,'player').attack):0;
+ if(spec.spendCharge&&s.path==='inner'){const charge=p.vigor||0;p.vigor=0;if(spec.chargeInto==='shield'){const shield=charge*(2+(s.innateRank||0));b.playerShield+=shield;notes.push('축기 '+charge+' → 보호막 '+shield);}else{power+=charge*((spec.chargeFactor||2)+(s.innateRank||0)*.5+(b.abilityState?.coreDamage||0));notes.push('축기 '+charge+' 방출');}}
+ if(spec.spendResonance){power+=t.resonance*(3+(s.innateRank||0)+(b.abilityState?.coreDamage||0));notes.push('공명 '+t.resonance+' 소모');t.resonance=0;}
  let drain=0,counterStatus=null;
  const countStatus=(side,id)=>id==='all'?Object.values(b.statuses[side]).reduce((sum,r)=>sum+r.stacks,0):statusFor(s,side,id)?.stacks||0;
- for(const o of spec.ops){const v=operationValue(a,o),side=o.side||'enemy';switch(o.kind){
+ for(const o of spec.ops){const v=operationValue(a,o,s),side=o.side||'enemy';switch(o.kind){
   case 'consume':{const count=countStatus(side,o.status);power+=count*v;delete b.statuses[side][o.status];notes.push((statusRules[o.status]?.name||'상태')+' '+count+'중첩 소모');break;}
   case 'convert':{const count=countStatus(side,o.status);delete b.statuses[side][o.status];const amount=count*v;if(o.into==='shield')b.playerShield+=amount;else if(o.into==='energy')s.energy=Math.min(api.maxEnergy(s),s.energy+amount);else s.hp=Math.min(api.maxHp(s),s.hp+Math.floor(amount*statusModifiers(s,'player').healing));notes.push('상태 '+count+'중첩 전환');break;}
   case 'transfer':{const count=countStatus('player',o.status);delete b.statuses.player[o.status];if(count)addTechniqueStatus(s,'enemy',o.status,count*v);notes.push('상태 '+count+'중첩 이전');break;}
@@ -56,10 +57,10 @@ export function executeTechnique(s,a,api,{release=false}={}){
   }
   notes.unshift('타격 '+total+' 피해');if(drain&&total){const gain=Math.min(api.maxHp(s)-s.hp,Math.floor(total*drain*statusModifiers(s,'player').healing));s.hp+=gain;notes.push('흡수 회복 +'+gain);}
  }
- for(const o of spec.ops.filter(o=>o.kind==='status'))if(o.side==='player'||landed){addTechniqueStatus(s,o.side||'enemy',o.status,o.value);api.emit(s,'status','player',o.side||'enemy',statusRules[o.status].name+' '+o.value+'중첩');}
+ for(const o of spec.ops.filter(o=>o.kind==='status'))if(o.side==='player'||landed){const result=addTechniqueStatus(s,o.side||'enemy',o.status,o.value);api.emit(s,'status','player',o.side||'enemy',statusRules[o.status].name+(result.resisted?' 저항':' '+o.value+'중첩'));}
  api.log(s,'player',a.name+' · '+notes.join(' · '),{skill:a.name});
 }
 export function techniqueInsight(s,a,base){
  const spec={...a.technique,rank:a.rank||0},power=spec.power?techniquePower(s,a,base):0,description=describeTechnique(s,spec);
- return {value:spec.power?'타격 위력 '+Number(power.toFixed(2))+' × '+(spec.hits||1)+'회':description,formula:spec.power?powerFormula(spec.power)+(spec.spendCharge?' + 축기 × '+(spec.chargeFactor||2):'')+(spec.spendResonance?' + 소모 공명 × 3':''):'고정 효과 · 보호막/즉시 회복/숨/반격/공격 강화는 각 기본값 + 강화 단계',notes:description+' / 표식은 최대 6중첩, 공명은 최대 3중첩. 실제 타격은 방어·보호막·명중·치명타를 반영합니다.'};
+ return {value:spec.power?'타격 위력 '+Number(power.toFixed(2))+' × '+(spec.hits||1)+'회':description,formula:spec.power?powerFormula(spec.power)+(spec.spendCharge?' + 축기 × '+((spec.chargeFactor||2)+(s.innateRank||0)*.5):'')+(spec.spendResonance?' + 소모 공명 × '+(3+(s.innateRank||0)):''):'고정 효과 · 보호막/즉시 회복/숨/반격/공격 강화는 각 기본값 + 강화 단계',notes:description+' / 표식은 최대 6중첩, 공명은 최대 3중첩. 실제 타격은 방어·보호막·명중·치명타를 반영합니다.'};
 }

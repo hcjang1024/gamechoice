@@ -29,15 +29,15 @@ test('only learned and equipped passives affect stats, including both paths and 
 test('passive power and defense change actual hit resolution rather than only displayed stats',()=>{
  let base=hero(),strong=structuredClone(base);grantPassive(strong,'passive-force');
  const duel=s=>{const b=beginBattle(s,{enemy:{hp:100,attack:6,speed:1}});b.loadout=[];b.battle.actor='player';b.battle.seed=1;return tickBattle(b);};
- assert.equal(duel(base).battle.enemy.hp-duel(strong).battle.enemy.hp,1);
+ assert.equal(duel(base).battle.enemy.hp-duel(strong).battle.enemy.hp,2); // Same seeded critical: 160% damage scales the +1 attack.
  strong=structuredClone(base);grantPassive(strong,'passive-resolve');
  const enemy=s=>{const b=beginBattle(s,{enemy:{hp:100,attack:6,speed:1}});b.battle.actor='enemy';b.battle.stats.evasion=0;b.battle.seed=1;return tickBattle(b);};
  assert.equal(enemy(strong).hp-enemy(base).hp,1);
 });
-test('passive learning and recurring upgrades consume one point and stop at rank three',()=>{
- let s=hero();s.journey.points=5;s=migrate(s);s=choose(withGrowthChoice(s,'study-passive-force'),'study-passive-force');assert.ok(s.passiveLoadout.includes('passive-force'));assert.equal(s.journey.points,4);
- for(let rank=1;rank<=3;rank++){s=choose(withGrowthChoice(s,'hone-passive-force'),'hone-passive-force');assert.equal(s.passiveRanks['passive-force'],rank);assert.equal(passiveBonus(s).attack,1+rank);assert.deepEqual(migrate(JSON.parse(JSON.stringify(s))),s);}
- assert.ok(!growthPool(s).skills.some(c=>c.ability.id==='passive-force'));
+test('passive learning and recurring upgrades consume one point and stop at level seven',()=>{
+ let s=hero();s.journey.points=8;s=migrate(s);s=choose(withGrowthChoice(s,'study-passive-force'),'study-passive-force');assert.ok(s.passiveLoadout.includes('passive-force'));assert.equal(s.journey.points,7);
+ for(let rank=1;rank<=6;rank++){s=choose(withGrowthChoice(s,'hone-passive-force'),'hone-passive-force');assert.equal(s.passiveRanks['passive-force'],rank);assert.equal(passiveBonus(s).attack,1+rank);if(rank<6)assert.deepEqual(migrate(JSON.parse(JSON.stringify(s))),s);}
+ assert.ok(!growthPool(s).abilities.some(c=>c.ability.id==='passive-force'));
 });
 test('passives can be purchased once at school without consuming active slots',()=>{
  let s=hero();s.scene='school';s.journey.gold=20;const active=[...s.loadout];s=choose(withLessonChoice(s,'learn-passive-vitality'),'learn-passive-vitality');assert.equal(s.journey.gold,12);assert.ok(s.passiveSkills.includes('passive-vitality'));assert.deepEqual(s.loadout,active);assert.throws(()=>choose(s,'learn-passive-vitality'));

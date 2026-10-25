@@ -15,7 +15,7 @@ export function routeTemplate(chapter=1){
  });
 }
 export function routePlan(s){
- const random=seeded([s.name,s.path,s.weapon,s.element,s.journey?.chapter||1,'route-v2'].join('|'));
+ const random=seeded([s.name+(s.runSetup?'|'+s.runSetup.seed:''),s.path,s.weapon,s.element,s.journey?.chapter||1,'route-v2'].join('|'));
  return routeTemplate(s.journey?.chapter||1).map(stop=>({...stop,options:stop.options.length===1?stop.options:sample(stop.options,2,random)}));
 }
 

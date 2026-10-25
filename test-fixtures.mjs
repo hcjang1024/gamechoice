@@ -11,7 +11,7 @@ export function withGrowthChoice(state,id){
  const s=enforceGrowth(structuredClone(state));
  if(s.scene!=='growth'||s.journey.points<1||!['grow-','study-','hone-','claim-item-'].some(p=>id.startsWith(p)))return s;
  if(growthChoices(s).some(c=>c.id===id))return s;
- const pool=growthPool(s);if(![...pool.skills,...pool.stats,...pool.items].some(c=>c.id===id))return s;
+ const pool=growthPool(s);if(![...pool.skills,...pool.abilities,...pool.stats,...pool.items].some(c=>c.id===id))return s;
  const seed=s.journey.growthSeed;
  for(let i=1;i<=2000;i++){delete s.journey.growthDraft;s.journey.growthSeed=(Math.imul(i,2654435761)^seed)>>>0||1;ensureGrowthDraft(s);if(growthChoices(s).some(c=>c.id===id))return s;}
  throw Error('No fixture seed offers '+id);
@@ -29,8 +29,7 @@ export function withLessonChoice(state,id){
  const wanted=id.slice(6),pool=lessonPool(s);if(!pool.some(a=>a.id===wanted))return s;
  if(lessonsFor(s).some(a=>a.id===wanted)||s.journey.lessonOffer.bought.length)return s;
  const preferred=[...new Set([wanted,...['guard','element','chain','passive-vitality'].filter(id=>pool.some(a=>a.id===id))])];
- for(let i=1;i<2000;i++){delete s.journey.lessonOffer;s.journey.lessonSeed=Math.imul(i,2654435761)>>>0;const offers=lessonsFor(s);if(preferred.every(id=>offers.some(a=>a.id===id)))return s;}
- throw Error('No lesson fixture seed');
+ const selected=preferred.map(id=>pool.find(a=>a.id===id));for(const a of pool)if(selected.length<3&&!selected.some(k=>k.id===a.id))selected.push(a);s.journey.lessonOffer.offers=selected.slice(0,5);return s;
 }
 export const chooseFixture=(s,id)=>choose(withLessonChoice(withRouteChoice(withGrowthChoice(s,id),id),id),id);
 

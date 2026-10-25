@@ -17,7 +17,7 @@ test('every growth draft has exactly three distinct eligible rewards from the sh
  for(const path of ['inner','outer'])for(const weapon of weapons)for(const element of elements)for(let i=0;i<5;i++){
   const s=hero(path,'후보 '+i);s.weapon=weapon;s.element=element;delete s.journey.growthDraft;s.journey.growthSeed=(Math.imul(i+1,2654435761)+weapon.length+elements.indexOf(element))>>>0;
   const pool=growthPool(s),choices=growthChoices(s);assert.equal(choices.length,3);assert.equal(new Set(choices.map(c=>c.id)).size,3);
-  for(const c of choices){types.add(c.rewardType);assert.equal(c.disabled,false);assert.ok([...pool.skills,...pool.stats,...pool.items].some(a=>a.id===c.id));}
+  for(const c of choices){types.add(c.rewardType);assert.equal(c.disabled,false);assert.ok([...pool.skills,...pool.abilities,...pool.stats,...pool.items].some(a=>a.id===c.id));}
   drafts.add(choices.map(c=>c.id).join(','));
  }
  assert.ok(drafts.size>30);assert.deepEqual([...types].sort(),['item','passive','skill','stat','upgrade']);
@@ -30,7 +30,7 @@ test('rendering, repeated scene reads and reload do not reroll an unresolved dra
 });
 test('only a currently offered reward can be selected; bypassing the draft does not spend points',()=>{
  const s=hero(),pool=growthPool(s),offered=scene(s).choices;
- const hidden=[...pool.skills,...pool.stats,...pool.items].find(c=>!offered.some(k=>k.id===c.id));
+ const hidden=[...pool.skills,...pool.abilities,...pool.stats,...pool.items].find(c=>!offered.some(k=>k.id===c.id));
  const before=structuredClone(s);assert.throws(()=>choose(s,hidden.id));assert.throws(()=>choose(s,'to-hub'));assert.deepEqual(s,before);
 });
 test('one point grants only the selected reward and advances to a new saved draft',()=>{
@@ -71,7 +71,7 @@ test('stat rewards apply the shown increase and preserve all other rewards and r
  }
 });
 test('when skills are maxed, three usable stats or items still appear with no disabled dead end',()=>{
- const s=hero();for(const a of passiveDefinitions){grantPassive(s,a.id);s.passiveRanks[a.id]=3;}s.learnedSkills=['weapon','element','counter'];s.journey.learned=manualsFor(s).map(a=>a.id).concat(recipesFor(s).map(a=>a.id));
+ const s=hero();s.innateRank=6;s.powerEvolutions={'core-breath':'core-breath-evolution-0'};for(const a of passiveDefinitions){grantPassive(s,a.id);s.passiveRanks[a.id]=6;s.powerEvolutions[a.id]=a.id+'-evolution-0';}s.learnedSkills=['weapon','element','counter'];s.journey.learned=manualsFor(s).map(a=>a.id).concat(recipesFor(s).map(a=>a.id));
  for(const a of abilities(s))s.journey.skillRanks[a.id]=3;
  for(const i of items.filter(i=>i.type==='equipment'))s.journey.inventory[i.id]=1;
  delete s.journey.growthDraft;const choices=growthChoices(s);
